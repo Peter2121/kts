@@ -129,7 +129,6 @@
     <ClInclude Include="session\KPortforward.hxx" />
     <ClInclude Include="shared\KPrcsGroup.hxx" />
     <ClInclude Include="session\KPublickeyLogon.hxx" />
-    <ClInclude Include="shared\KRegkey.hxx" />
     <ClInclude Include="session\KSession.hxx" />
     <ClInclude Include="shared\KSessionState.hxx" />
     <ClInclude Include="session\KSftp.hxx" />

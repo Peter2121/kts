@@ -4,9 +4,9 @@ kts
 This is a fork of the KpyM Telnet/SSH Server for Windows (as I believe that project is no longer maintained).  Plans for this effort include the following:
 
 1. Coming up with a good name
-2. Removal of "registration codes" and nag screens
+2. Removal of "registration codes" and nag screens (Done)
 3. Updating cryptlib (and any other dependent libraries) to a more recent version
-4. Add proper installer/uninstaller
+4. Adding proper installer/uninstaller
 
 Legal Stuff Below:
 
