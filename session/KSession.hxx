@@ -9,7 +9,6 @@
 #include "..\shared\KSocket.hxx"
 #include "..\shared\KSocketDup.hxx"
 #include "..\shared\KConsole.hxx"
-#include "..\shared\KRegkey.hxx"
 #include "..\shared\KKey.hxx"
 #include "..\shared\KScreenExport.hxx"
 #include "..\shared\KPrcsGroup.hxx"
@@ -1103,8 +1102,6 @@ private:
 
 		KSession * term = ( KSession * )p;
 
-		KRegkey reg;
-
 		std::string pipe_name = "";
 
 		if( term->password_must_change )
@@ -1153,8 +1150,6 @@ private:
 		KSession * term = ( KSession * )p;
 
 		term->flags->Enable( "pass_timeout" );
-
-		KRegkey reg;
 
 		term->console->Write( term->params.welcome_message );
 
