@@ -43,16 +43,16 @@ public:
 		ktrace_in( );
 		ktrace( "KSsh::KSsh( )" );
 		// init cryptlib
-		int status = cryptInit( );
-		if( status != CRYPT_OK ) 
+		int _status = cryptInit( );
+		if( _status != CRYPT_OK ) 
 		{
 			kerror( "can't init cryptlib" );
 			klog( "can't init cryptlib" );
 			LogErrorMessage();
 		}
 
-		status = cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
-		if( status != CRYPT_OK )
+		_status = cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
+		if( _status != CRYPT_OK )
 		{
 			kerror( "can't add cryptlib random" );
 			klog( "can't add cryptlib random" );
@@ -158,17 +158,17 @@ public:
 	/*==============================================================================
 	 * push data up the ssh chanel
 	 *=============================================================================*/
-	bool Push( const std::string & buff, const int channel )
+	bool Push( const std::string & buff, const int _channel )
 	{
 		ktrace_in( );
-		ktrace( "KSsh::Push( " << channel << ", " << buff << " )" );
+		ktrace( "KSsh::Push( " << _channel << ", " << buff << " )" );
 
 		unsigned offset = 0;
 		while(true)
 		{
 			std::string chunk = buff.substr(offset, 2000);
 			offset += 2000;
-			if( !this->PushChunk(chunk, channel) ) return false;
+			if( !this->PushChunk(chunk, _channel) ) return false;
 
 			if(offset > buff.length()) break;
 		}
@@ -190,14 +190,14 @@ public:
 	/*==============================================================================
 	 * push chunk of data up the ssh chanel
 	 *=============================================================================*/
-	bool PushChunk( const std::string & buff, const int channel )
+	bool PushChunk( const std::string & buff, const int _channel )
 	{
 		ktrace_in( );
 		ktrace( "KSsh::PushChunk( " << buff << " )" );
 
 		int len;
 
-		this->status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_SSH_CHANNEL, channel );
+		this->status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_SSH_CHANNEL, _channel );
 		if( this->status != CRYPT_OK )
 		{
 			ktrace( "cryptSetAttribute : err = " << this->status );
@@ -270,12 +270,12 @@ public:
 	/*==============================================================================
 	 * close channel
 	 *=============================================================================*/
-	bool CloseChannel( int channel )
+	bool CloseChannel( int _channel )
 	{
 		ktrace_in( );
-		ktrace( "KSsh::CloseChannel( " << channel << " )" );
+		ktrace( "KSsh::CloseChannel( " << _channel << " )" );
 
-		this->status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_SSH_CHANNEL, channel );
+		this->status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_SSH_CHANNEL, _channel );
 		if( this->status != CRYPT_OK) 
 		{
 			ktrace( "cryptSetAttribute 1 : err = " << this->status );
@@ -499,61 +499,61 @@ public:
 	/*==============================================================================
 	 * create ssh session associated with socket
 	 *=============================================================================*/
-	bool Init( SOCKET sock, std::string file = my_file, std::string pass = my_pass )
+	bool Init( SOCKET _sock, std::string file = my_file, std::string pass = my_pass )
 	{
 		ktrace_in( );
-		ktrace( "KSsh::Init( " << ( int )sock << ", " << file << " )" );
+		ktrace( "KSsh::Init( " << ( int )_sock << ", " << file << " )" );
 
-		int status = 0;
-		this->sock = sock;
+		int _status = 0;
+		this->sock = _sock;
 
 		// load private RSA key
 		CRYPT_CONTEXT privKey;
 
 		CRYPT_KEYSET keySet;
-		status = cryptKeysetOpen(&keySet, CRYPT_UNUSED, CRYPT_KEYSET_FILE, file.c_str( ), CRYPT_KEYOPT_READONLY );
-		if( status != CRYPT_OK )
+		_status = cryptKeysetOpen(&keySet, CRYPT_UNUSED, CRYPT_KEYSET_FILE, file.c_str( ), CRYPT_KEYOPT_READONLY );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptKeysetOpen = " << status );
+			kerror( "cryptKeysetOpen = " << _status );
 			return false;
 		}
 
-		status = cryptGetPrivateKey( keySet, &privKey, CRYPT_KEYID_NAME, "RSA_KEY", pass.c_str( ) );
-		if( status != CRYPT_OK )
+		_status = cryptGetPrivateKey( keySet, &privKey, CRYPT_KEYID_NAME, "RSA_KEY", pass.c_str( ) );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptGetPrivateKey = " << status );
+			kerror( "cryptGetPrivateKey = " << _status );
 			return false;
 		}
 
-		status = cryptKeysetClose( keySet );
-		if( status != CRYPT_OK )
+		_status = cryptKeysetClose( keySet );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptKeysetClose = " << status );
+			kerror( "cryptKeysetClose = " << _status );
 			return false;
 		}
 
 		// create the session and add private key
-		status = cryptCreateSession( &( this->cryptSession ), CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER );
-		if( status != CRYPT_OK )
+		_status = cryptCreateSession( &( this->cryptSession ), CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptCreateSession = " << status );
+			kerror( "cryptCreateSession = " << _status );
 			return false;
 		}
 
-		status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_PRIVATEKEY, privKey );
-		if( status != CRYPT_OK )
+		_status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_PRIVATEKEY, privKey );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptSetAttribute1 = " << status );
+			kerror( "cryptSetAttribute1 = " << _status );
 			return false;
 		}
 
 		cryptDestroyContext( privKey );
 
 		// add the socket
-		status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_NETWORKSOCKET, ( int )sock );
-		if( status != CRYPT_OK )
+		_status = cryptSetAttribute( this->cryptSession, CRYPT_SESSINFO_NETWORKSOCKET, ( int )sock );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptSetAttribute2 = " << status );
+			kerror( "cryptSetAttribute2 = " << _status );
 			return false;
 		}
 
@@ -570,42 +570,42 @@ public:
 		ktrace_in( );
 		ktrace( "KSsh::CreateRsaKey( " << my_file << " )" );
 
-		int status;
+		int _status;
 		// Create a context for RSA
 		CRYPT_CONTEXT	privKeyContext;
 		int		keyLen	= 128;	// 1024 bit
 
-		status = cryptCreateContext(&privKeyContext, CRYPT_UNUSED, CRYPT_ALGO_RSA);
-		if( status != CRYPT_OK )
+		_status = cryptCreateContext(&privKeyContext, CRYPT_UNUSED, CRYPT_ALGO_RSA);
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptCreateContext = " << status );
+			kerror( "cryptCreateContext = " << _status );
 			LogErrorMessage();
 			return( false );
 		}
 
 		// Set a label for the key
-		status = cryptSetAttributeString(privKeyContext, CRYPT_CTXINFO_LABEL, "RSA_KEY", 7 );
-		if( status != CRYPT_OK )
+		_status = cryptSetAttributeString(privKeyContext, CRYPT_CTXINFO_LABEL, "RSA_KEY", 7 );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptSetAttributeString = " << status );
+			kerror( "cryptSetAttributeString = " << _status );
 			LogErrorMessage();
 			return( false );
 		}
 
 		// Set key length
-		status = cryptSetAttribute(privKeyContext, CRYPT_CTXINFO_KEYSIZE, keyLen);
-		if( status != CRYPT_OK )
+		_status = cryptSetAttribute(privKeyContext, CRYPT_CTXINFO_KEYSIZE, keyLen);
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptSetAttribute = " << status );
+			kerror( "cryptSetAttribute = " << _status );
 			LogErrorMessage();
 			return( false );
 		}
 
 		// Generate a key
-		status = cryptGenerateKey(privKeyContext);
-		if( status != CRYPT_OK )
+		_status = cryptGenerateKey(privKeyContext);
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptGenerateKey = " << status );
+			kerror( "cryptGenerateKey = " << _status );
 			LogErrorMessage();
 			return( false );
 		}
@@ -613,27 +613,27 @@ public:
 		// Open a Keysey file
 		CRYPT_KEYSET	keySet;
 
-		status = cryptKeysetOpen(&keySet, CRYPT_UNUSED, CRYPT_KEYSET_FILE, file.c_str( ), CRYPT_KEYOPT_CREATE);
-		if( status != CRYPT_OK )
+		_status = cryptKeysetOpen(&keySet, CRYPT_UNUSED, CRYPT_KEYSET_FILE, file.c_str( ), CRYPT_KEYOPT_CREATE);
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptKeysetOpen = " << status );
+			kerror( "cryptKeysetOpen = " << _status );
 			LogErrorMessage();
 			return( false );
 		}
 
 		// Store the private key
-		status = cryptAddPrivateKey(keySet, privKeyContext, pass.c_str( ) );
-		if( status != CRYPT_OK )
+		_status = cryptAddPrivateKey(keySet, privKeyContext, pass.c_str( ) );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptAddPrivateKey = " << status );
+			kerror( "cryptAddPrivateKey = " << _status );
 			LogErrorMessage();
 			return( false );
 		}
 
-		status = cryptKeysetClose( keySet );
-		if( status != CRYPT_OK )
+		_status = cryptKeysetClose( keySet );
+		if( _status != CRYPT_OK )
 		{
-			kerror( "cryptKeysetClose = " << status );
+			kerror( "cryptKeysetClose = " << _status );
 			LogErrorMessage();
 			return( false );
 		}

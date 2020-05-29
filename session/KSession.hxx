@@ -27,6 +27,7 @@ class KSession
 {
 #define IDLE_TIMEOUT "idle_timeout"
 #define PASS_TIMEOUT "pass_timeout"
+	const std::string STATE_CLOSED = "closed";
 	/*==============================================================================
 	 * var
 	 *=============================================================================*/
@@ -538,12 +539,12 @@ private:
 	// =============================================================================
 	// fix console screen size
 	// =============================================================================
-	void FixConsoleScreenSize( bool is_ssh )
+	void FixConsoleScreenSize( bool _is_ssh )
 	{
 		ktrace_in( );
 		ktrace( "KSession::FixConsoleScreenSize( )" );
 
-		if( is_ssh )
+		if( _is_ssh )
 		{
 			this->ssh->ScreenSize();
 			this->telnet->screen.X = this->ssh->screenWidth;
@@ -716,20 +717,20 @@ private:
 			}
 			else
 			{
-				NET_API_STATUS status = KWinsta::ChangePassword(domain, user, pass, new_pass );
+				NET_API_STATUS _status = KWinsta::ChangePassword(domain, user, pass, new_pass );
 
 				this->console->Write( "\r\n" );
-				this->console->Write( KWinsta::GetErrorMessage(status) );
+				this->console->Write( KWinsta::GetErrorMessage(_status) );
 				this->console->Write( "\r\n" );
 				this->console->Write( "\r\n" );
 
-				if( status == NERR_Success ) 
+				if( _status == NERR_Success ) 
 				{
 					klog( "password changed" );
 
-					int key = 0;
-					this->console->ReadKey( key );
-					this->console->ReadKey( key );
+					int _key = 0;
+					this->console->ReadKey( _key );
+					this->console->ReadKey( _key );
 
 					return;
 				}
@@ -747,10 +748,10 @@ private:
 		ktrace( "KSession::LogonUser1( " << user1 << ", " << "********" << " )" );
 
 		this->params.user = user1;
-		std::string user = user1;
+		std::string _user = user1;
 
 		// make user lowercase, thanks to Net147 for finding this bug
-		KWinsta::ToLower( user );
+		KWinsta::ToLower( _user );
 
 //		// check allowed users
 //		KWinsta::ToLower( this->params.allowed_login_list );
@@ -770,20 +771,20 @@ private:
 
 		if( this->params.default_domain != "" )
 		{
-			user = user + "@" + this->params.default_domain;
+			_user = _user + "@" + this->params.default_domain;
 		}
 
 		SetEnvironmentVariable( "KTS_USER", this->params.user.c_str( ) );
 
 		if( !KWinsta::SetWinstaAndDesktop( "kts" ) ) kerror( "KWinsta::SetWinstaAndDesktop( kts ):err" );
 
-		if( ::LogonUser( user.c_str( ), NULL, pass.c_str( ), LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &this->token ) )
+		if( ::LogonUser( _user.c_str( ), NULL, pass.c_str( ), LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &this->token ) )
 		{
-			this->session_state->SetStateLogged( user );
+			this->session_state->SetStateLogged( _user );
 
 			this->console->Write( this->params.login_successfull_message );
 
-			klog( "login accepted: [ " << user << " ]" );
+			klog( "login accepted: [ " << _user << " ]" );
 
 			// release ip ban
 			this->ip_ban->ResetIPBanConnection( this->sock->GetConnectionIP( ) );
@@ -794,7 +795,7 @@ private:
 		DWORD error = GetLastError( );
 		if( error == ERROR_PASSWORD_MUST_CHANGE ) 
 		{
-			klog( "password must change: [ " << user << " ]" );
+			klog( "password must change: [ " << _user << " ]" );
 
 			// release ip ban
 			this->ip_ban->ResetIPBanConnection( this->sock->GetConnectionIP( ) );
@@ -806,7 +807,7 @@ private:
 
 if( this->params.debug_flag )
 {
-		this->session_state->SetStateLogged( user );
+		this->session_state->SetStateLogged( _user );
 		return( ERROR_SUCCESS );
 }
 else
@@ -1316,19 +1317,19 @@ private:
 				this->TerminateSession( );
 			}
 
-			std::string user = this->ssh->username;
+			std::string _user = this->ssh->username;
 			std::string pass = this->ssh->password;
 			std::string publickey = this->ssh->publickey;
 
 			if(publickey != "" )
 			{
 				std::string domain;
-				if(this->publickey_logon->GetPublickeyCredentials(publickey, user, pass, domain))
+				if(this->publickey_logon->GetPublickeyCredentials(publickey, _user, pass, domain))
 				{
 					// we have the user credentials based on his publickey
 					if( domain != "" )
 					{
-						user = user + "@" + domain;
+						_user = _user + "@" + domain;
 					}
 					klog("doing publickey authentication");
 				}
@@ -1340,8 +1341,8 @@ private:
 
 			DWORD error;
 
-			this->user = user;
-			error = this->LogonUser1( user, pass );
+			this->user = _user;
+			error = this->LogonUser1( _user, pass );
 
 			if( error == ERROR_SUCCESS ) 
 			{
@@ -1358,8 +1359,8 @@ private:
 			}
 			std::string message = KWinsta::GetErrorMessage( error );
 
-			ktrace( "login refused: [ " << user << " ] - " << message );
-			klog( "login refused: [ " << user << " ] - " << message );
+			ktrace( "login refused: [ " << _user << " ] - " << message );
+			klog( "login refused: [ " << _user << " ] - " << message );
 
 			++loop;
 
@@ -1740,10 +1741,10 @@ private:
 
 		this->session_state->SetStateProxy( );
 
-		KPipe pipe;
+		KPipe _pipe;
 		KCommUtils comm( this->sock, this->ssh, this->flags, this->is_ssh );
 
-		if( !pipe.Connect( this->pipe_name ) ) 
+		if( !_pipe.Connect( this->pipe_name ) ) 
 		{
 			klog( "can't connect pipe " << this->pipe_name );
 			this->session_state->SetStateZombie( this->pipe_name );
@@ -1753,7 +1754,7 @@ private:
 
 		int width = 63;
 		int height = 21;
-		if( !pipe.Write( naws( width, height ) ) ) goto end_loop;
+		if( !_pipe.Write( naws( width, height ) ) ) goto end_loop;
 		if( this->is_ssh )
 		{
 			this->ssh->ScreenSize();
@@ -1765,7 +1766,7 @@ private:
 			width = this->telnet->screen.X;
 			height = this->telnet->screen.Y;
 		}
-		if( !pipe.Write( naws( width, height ) ) ) goto end_loop;
+		if( !_pipe.Write( naws( width, height ) ) ) goto end_loop;
 
 
 		while( true )
@@ -1773,17 +1774,17 @@ private:
 			std::string buff;
 			DWORD bytes;
 
-			if( !pipe.PeekData( &bytes ) ) goto end_loop;
+			if( !_pipe.PeekData( &bytes ) ) goto end_loop;
 			if( bytes > 0 )
 			{
-				if( !pipe.Read( buff ) ) goto end_loop;
+				if( !_pipe.Read( buff ) ) goto end_loop;
 				if( !comm.Send( buff ) ) goto end_loop;
 			}
 
 			if( !comm.Receive( buff ) ) goto end_loop;
 			if( buff != "" )
 			{
-				if( !pipe.Write( buff ) ) goto end_loop;
+				if( !_pipe.Write( buff ) ) goto end_loop;
 			}
 
 			if( this->is_ssh )
@@ -1794,7 +1795,7 @@ private:
 					width = this->ssh->screenWidth;
 					height = this->ssh->screenHeight;
 
-					if( !pipe.Write( naws( width, height ) ) ) goto end_loop;
+					if( !_pipe.Write( naws( width, height ) ) ) goto end_loop;
 				}
 			}
 

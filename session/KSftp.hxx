@@ -664,12 +664,12 @@ private:
 
 		while (FindNextFileA(hFind, &FindFileData) != 0)
 		{
-			FILE_ATTRS fa;
-			fa.filename = FindFileData.cFileName;
-			fa.longname = ffd2string( FindFileData );
+			FILE_ATTRS fa1;
+			fa1.filename = FindFileData.cFileName;
+			fa1.longname = ffd2string( FindFileData );
 //			fa.attrs.flags = 0;
-			attrs_safe( path + "\\" + fa.filename, fa.attrs );
-			res.push_back( fa );
+			attrs_safe( path + "\\" + fa1.filename, fa1.attrs );
+			res.push_back( fa1 );
 		}
 
 		FindClose(hFind);
@@ -1241,8 +1241,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			USE(type);
+			byte _type = b2byte( buff, l, ret );
+			USE(_type);
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -1430,8 +1430,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -1499,8 +1499,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -1567,8 +1567,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->version = b2uint32( buff, l, ret );
@@ -1620,8 +1620,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -1710,8 +1710,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -1747,11 +1747,11 @@ private:
 				// try to create the file
 				if( !create_safe( this->filename ) )
 				{
-					s_SSH_FXP_STATUS s;
-					s.request_id = this->request_id;
-					s.error_code = SSH_FX_FAILURE;
+					s_SSH_FXP_STATUS s1;
+					s1.request_id = this->request_id;
+					s1.error_code = SSH_FX_FAILURE;
 
-					s.ToBuffer( buff_out );
+					s1.ToBuffer( buff_out );
 				}
 			}
 			if( buff_out.length() == 0 ) s.ToBuffer( buff_out );
@@ -1782,8 +1782,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -1856,8 +1856,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -1945,8 +1945,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -2016,8 +2016,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -2086,8 +2086,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -2141,8 +2141,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );
@@ -2205,8 +2205,8 @@ private:
 			this->length = b2uint32( buff, l, ret );
 			if( !ret ) return false;
 
-			byte type = b2byte( buff, l, ret );
-			if( type != this->type ) return false;
+			byte _type = b2byte( buff, l, ret );
+			if( _type != this->type ) return false;
 			if( !ret ) return false;
 
 			this->request_id = b2uint32( buff, l, ret );

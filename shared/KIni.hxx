@@ -16,12 +16,12 @@ public:
 	/*==============================================================================
 	 * set ini file
 	 *=============================================================================*/
-	void File( const std::string & file )
+	void File( const std::string & _file )
 	{
 		ktrace_in( );
-		ktrace( "KIni::File( " << file << " )" );
+		ktrace( "KIni::File( " << _file << " )" );
 
-		this->file = file;
+		this->file = _file;
 	}
 
 public:

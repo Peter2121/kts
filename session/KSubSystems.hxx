@@ -14,12 +14,12 @@ public:
 	/*==============================================================================
 	 * set subsystem directory
 	 *=============================================================================*/
-	void SetSubsystemDirectory( std::string subsystem_dir )
+	void SetSubsystemDirectory( std::string _subsystem_dir )
 	{
 		ktrace_in( );
-		ktrace( "KSubSystems::SetSubsystemDirectory( " << subsystem_dir << " )" );
+		ktrace( "KSubSystems::SetSubsystemDirectory( " << _subsystem_dir << " )" );
 
-		this->subsystem_dir = subsystem_dir;
+		this->subsystem_dir = _subsystem_dir;
 
 	}
 public:

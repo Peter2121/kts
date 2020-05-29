@@ -236,11 +236,11 @@ public:
 
 		if( len == 1 )
 		{
-			unsigned char ch = buff[ 0 ];
+			unsigned char _ch = buff[ 0 ];
 			unsigned char encode[ 33 ] = " ...............><......II<>..II";
 
-			if( ch < 32 ) return( std::string( 1, encode[ ch ] ) );
-			if( ch == 255 && this->ssh == false ) return( std::string( 2, buff[ 0 ] ) );
+			if( _ch < 32 ) return( std::string( 1, encode[ _ch ] ) );
+			if( _ch == 255 && this->ssh == false ) return( std::string( 2, buff[ 0 ] ) );
 			return( std::string( 1, buff[ 0 ] ) );
 		}
 
@@ -253,18 +253,18 @@ public:
 	/*==============================================================================
 	 * set color
 	 *=============================================================================*/
-	std::string Color( WORD attribute )
+	std::string Color( WORD _attribute )
 	{
-		if( this->attribute != attribute )
+		if( this->attribute != _attribute )
 		{
-			this->attribute = attribute;
+			this->attribute = _attribute;
 
 			std::string attr;
 
-			if( attribute & KConsole::FOREGROUND_INTENSITY ) attr += this->colors.foreground_intensity_on;
+			if( _attribute & KConsole::FOREGROUND_INTENSITY ) attr += this->colors.foreground_intensity_on;
 			else attr += this->colors.foreground_intensity_off;
 
-			switch( attribute & KConsole::FOREGROUND_MASK )
+			switch( _attribute & KConsole::FOREGROUND_MASK )
 			{
 				case KConsole::FOREGROUND_WHITE:
 					attr += this->colors.foreground_white;
@@ -292,10 +292,10 @@ public:
 					break;
 			}
 
-			if( attribute & KConsole::BACKGROUND_INTENSITY ) attr += this->colors.background_intensity_on;
+			if( _attribute & KConsole::BACKGROUND_INTENSITY ) attr += this->colors.background_intensity_on;
 			else attr += this->colors.background_intensity_off;
 
-			switch( attribute & KConsole::BACKGROUND_MASK )
+			switch( _attribute & KConsole::BACKGROUND_MASK )
 			{
 				case KConsole::BACKGROUND_WHITE:
 					attr += this->colors.background_white;

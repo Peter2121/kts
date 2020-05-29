@@ -54,10 +54,10 @@ private:
 			console.Write( "                                                                            " );
 		}
 */
-		COORD pos = { 0, 0 };
-		pos.X = 0;
-		pos.Y = 0;
-		console.SetCursor( pos, false );
+		COORD _pos = { 0, 0 };
+		_pos.X = 0;
+		_pos.Y = 0;
+		console.SetCursor( _pos, false );
 	}
 private:
 	/*==============================================================================
@@ -95,16 +95,16 @@ private:
 			ini.File( this->file );
 			ini.GetKey( this->sections[ this->index ], this->options[ this->index ], param );
 
-			COORD pos = { 0, 0 };
+			COORD _pos = { 0, 0 };
 			this->console.SetAttribute( KConsole::BACKGROUND_WHITE | KConsole::FOREGROUND_BLACK );
-			this->console.SetCursor( pos, false );
+			this->console.SetCursor( _pos, false );
 
 			std::stringstream header;
 			header << "  KpyM Telnet/SSH Server - v" << KTS_VERSION << "                <ret> = save   <esc> = cancel   ";
 			this->console.Write( header.str( ).substr( 0, 79 ) );
 
-			pos.Y = 2;
-			this->console.SetCursor( pos );
+			_pos.Y = 2;
+			this->console.SetCursor( _pos );
 			this->console.SetAttribute( KConsole::BACKGROUND_BLACK | KConsole::FOREGROUND_WHITE );
 			this->console.Write( "[" + this->sections[ this->index ] + "] : " + this->options[ this->index ] + " = " );
 
@@ -125,25 +125,25 @@ private:
 	 *=============================================================================*/
 	bool EditParam( SHORT x, SHORT y, std::string & param )
 	{
-		COORD pos;
-		pos.X = x;
-		pos.Y = y;
+		COORD _pos;
+		_pos.X = x;
+		_pos.Y = y;
 
 		while( true )
 		{
 			this->console.SetAttribute( KConsole::BACKGROUND_WHITE | KConsole::FOREGROUND_BLACK );
-			this->console.SetCursor( pos, false );
+			this->console.SetCursor( _pos, false );
 			this->console.Write( param );
 
-			int key = _getch( );
-			if( key == 0 || key == 224 )
+			int _key = _getch( );
+			if( _key == 0 || _key == 224 )
 			{
-				key = 0;
-				if( _getch( ) == 75 ) key = 8;
+				_key = 0;
+				if( _getch( ) == 75 ) _key = 8;
 			}
 
 
-			switch( key )
+			switch( _key )
 			{
 			case 0:
 				break;
@@ -154,16 +154,16 @@ private:
 			case 8:
 				if( param.length( ) > 0 ) param = param.substr( 0, param.length( ) - 1 );
 
-				this->console.SetCursor( pos, false );
+				this->console.SetCursor( _pos, false );
 				this->console.SetAttribute( KConsole::BACKGROUND_BLACK | KConsole::FOREGROUND_BLACK );
 				this->console.Write( param + " " );
 
 				break;
 			default:
-				param += (char)key;
+				param += (char)_key;
 				if( param.find( "\\n" ) != std::string::npos )
 				{
-					this->console.SetCursor( pos, false );
+					this->console.SetCursor( _pos, false );
 					this->console.SetAttribute( KConsole::BACKGROUND_BLACK | KConsole::FOREGROUND_BLACK );
 					this->console.Write( param + " " );
 
@@ -181,10 +181,10 @@ private:
 	 *=============================================================================*/
 	void ReadKey( )
 	{
-		int key = _getch( );
-		if( key == 0 || key == 224 ) key = _getch( );
+		int _key = _getch( );
+		if( _key == 0 || _key == 224 ) _key = _getch( );
 
-		switch( key )
+		switch( _key )
 		{
 		case 27:
 			this->key = Esc;
@@ -211,13 +211,13 @@ private:
 	{
 
 		
-		COORD pos = { 0, 0 };
+		COORD _pos = { 0, 0 };
 		std::string label;
 
 		
 
 		this->console.SetAttribute( KConsole::BACKGROUND_WHITE | KConsole::FOREGROUND_BLACK );
-		this->console.SetCursor( pos, false );
+		this->console.SetCursor( _pos, false );
 
 		std::stringstream header;
 		header << "  KpyM Telnet/SSH Server - v" << KTS_VERSION << "                                <esc> = exit   ";
@@ -227,9 +227,9 @@ private:
 
 		for( int i = this->top; i < this->top + this->height; i++ )
 		{
-			pos.X = this->pos.X;
-			pos.Y = (SHORT)(i - this->top + this->pos.Y);
-			console.SetCursor( pos, false );
+			_pos.X = this->pos.X;
+			_pos.Y = (SHORT)(i - this->top + this->pos.Y);
+			console.SetCursor( _pos, false );
 			
 			if( i == this->index )
 			{
@@ -257,9 +257,9 @@ private:
 		
 		}
 
-		pos.X = this->pos.X;
-		pos.Y = (SHORT)(this->index - this->top + this->pos.Y);
-		console.SetCursor( pos, false );
+		_pos.X = this->pos.X;
+		_pos.Y = (SHORT)(this->index - this->top + this->pos.Y);
+		console.SetCursor( _pos, false );
 	}
 private:
 	/*==============================================================================
@@ -358,9 +358,9 @@ public:
 	/*==============================================================================
 	 * run
 	 *=============================================================================*/
-	void Run( std::string file )
+	void Run( std::string _file )
 	{
-		this->file = file;
+		this->file = _file;
 
 		if( !this->LoadSetup( ) ) return;
 
@@ -381,7 +381,7 @@ public:
 	/*==============================================================================
 	 * generate rsa key
 	 *=============================================================================*/
-	bool RSAKey( std::string file )
+	bool RSAKey( std::string _file )
 	{
 		ktrace_in( );
 		ktrace_level( 10 );
@@ -393,7 +393,7 @@ public:
 		KIni ini;
 		std::string rsakey_file;
 
-		ini.File( file );
+		ini.File( _file );
 		ini.GetKey( "KSession", "rsakey_file", rsakey_file );
 		KWinsta::ExpandEnvironmentString( rsakey_file );
 
@@ -413,7 +413,7 @@ public:
 	/*==============================================================================
 	 * start service
 	 *=============================================================================*/
-	bool Start( std::string file )
+	bool Start( std::string _file )
 	{
 		ktrace_in( );
 		ktrace_level( 10 );
@@ -423,7 +423,7 @@ public:
 		KIni ini;
 		std::string service_name;
 
-		ini.File( file );
+		ini.File( _file );
 		ini.GetKey( "KDaemon", "service_name", service_name );
 
 		std::cout << "starting service \"" << service_name << "\"..." << std::endl;
@@ -448,7 +448,7 @@ public:
 	/*==============================================================================
 	 * stop service
 	 *=============================================================================*/
-	bool Stop( std::string file )
+	bool Stop( std::string _file )
 	{
 		ktrace_in( );
 		ktrace_level( 10 );
@@ -458,7 +458,7 @@ public:
 		KIni ini;
 		std::string service_name;
 
-		ini.File( file );
+		ini.File( _file );
 		ini.GetKey( "KDaemon", "service_name", service_name );
 
 		std::cout << "stopping service \"" << service_name << "\"..." << std::endl;
@@ -483,7 +483,7 @@ public:
 	/*==============================================================================
 	 * install service
 	 *=============================================================================*/
-	bool Install( std::string file )
+	bool Install( std::string _file )
 	{
 		ktrace_in( );
 		ktrace_level( 10 );
@@ -494,7 +494,7 @@ public:
 		std::string service_name;
 		std::string service_info;
 
-		ini.File( file );
+		ini.File( _file );
 		ini.GetKey( "KDaemon", "service_name", service_name );
 		ini.GetKey( "KDaemon", "service_info", service_info );
 
@@ -528,7 +528,7 @@ public:
 	/*==============================================================================
 	 * uninstall service
 	 *=============================================================================*/
-	bool Uninstall( std::string file )
+	bool Uninstall( std::string _file )
 	{
 		ktrace_in( );
 		ktrace_level( 10 );
@@ -538,7 +538,7 @@ public:
 		KIni ini;
 		std::string service_name;
 
-		ini.File( file );
+		ini.File( _file );
 		ini.GetKey( "KDaemon", "service_name", service_name );
 
 		std::cout << "uninstalling service \"" << service_name << "\"..." << std::endl;

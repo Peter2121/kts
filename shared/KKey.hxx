@@ -26,9 +26,9 @@ public:
 	/*==============================================================================
 	 * set window & handle internaly
 	 *=============================================================================*/
-	void SetWindow( HWND window )
+	void SetWindow( HWND _window )
 	{
-		this->window = window;
+		this->window = _window;
 
 		this->handle = CreateFile(
 			  "CONIN$"

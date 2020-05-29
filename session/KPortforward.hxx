@@ -266,9 +266,9 @@ public:
 			{
 				klog( "max_portforward_channels reached channel " << this->ssh->channel << "not created" );
 
-				std::stringstream str;
-				str << "\r\nmax_portforward_channels reached channel " << this->ssh->channel << "not created";
-				ssh_comm.Send( str.str(), 1 );
+				std::stringstream str1;
+				str1 << "\r\nmax_portforward_channels reached channel " << this->ssh->channel << "not created";
+				ssh_comm.Send( str1.str(), 1 );
 
 				fi.channel = this->ssh->channel;
 				fi.sock = INVALID_SOCKET;

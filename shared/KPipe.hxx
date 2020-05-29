@@ -143,7 +143,7 @@ public:
 	/*==============================================================================
 	* wait for client connection (for a period in sec, for each internal pipe)
 	*=============================================================================*/
-	void Accept( int timeout )
+	void Accept( int _timeout )
 	{
 		// there's some nasty memory leak in here
 		// stringstream /and/ seh are both leaking when used with threads
@@ -151,8 +151,8 @@ public:
 		// wtf?
 
 		ktrace_in( );
-		ktrace( "KPipe::Accept( " << timeout << " )" );
-		this->timeout = timeout;
+		ktrace( "KPipe::Accept( " << _timeout << " )" );
+		this->timeout = _timeout;
 
 		HANDLE thread = CreateThread( NULL, 0, KPipe::TimeoutThreadProc, this, 0, NULL);
 		ConnectNamedPipe( m_hReadPipe, NULL );

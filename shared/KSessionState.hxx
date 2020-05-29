@@ -18,15 +18,15 @@
 
 class KSessionState
 {
-#define STATE_STARTED		"started"
-#define STATE_LOGGED		"logged"
-#define STATE_SHELL			"shell"
-#define STATE_SFTP			"sftp"
-#define STATE_PROXY			"proxy"
-#define STATE_PIPE			"pipe"
-#define STATE_DISCONNECTED	"disconnected"
-#define STATE_CLOSED		"closed"
-#define STATE_ZOMBIE		"zombie"
+	const std::string STATE_STARTED = "started";
+	const std::string STATE_LOGGED = "logged";
+	const std::string STATE_SHELL = "shell";
+	const std::string STATE_SFTP = "sftp";
+	const std::string STATE_PROXY = "proxy";
+	const std::string STATE_PIPE = "pipe";
+	const std::string STATE_DISCONNECTED = "disconnected";
+	const std::string STATE_CLOSED = "closed";
+	const std::string STATE_ZOMBIE = "zombie";
 public:
 	/*==============================================================================
 	 * session state struct
@@ -175,18 +175,18 @@ private:
 	/*==============================================================================
 	 * check if session is alive
 	 *=============================================================================*/
-	bool IsSessionAlive( DWORD pid )
+	bool IsSessionAlive( DWORD _pid )
 	{
 		ktrace_in( );
-		ktrace( "KSessionState::IsSessionAlive( " << pid << " )" );
+		ktrace( "KSessionState::IsSessionAlive( " << _pid << " )" );
 
-		HANDLE process = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
+		HANDLE process = OpenProcess(PROCESS_QUERY_INFORMATION, false, _pid);
 		if( process == NULL )
 		{
 			DWORD err = GetLastError();
 			// no such process
 			if(err == ERROR_INVALID_PARAMETER ) return false;
-			kerror("can't open process " << pid << " err " << err);
+			kerror("can't open process " << _pid << " err " << err);
 			return false;
 		}
 		DWORD exitCode = 0;
@@ -259,15 +259,15 @@ private:
 	/*==============================================================================
 	 * find disconnected files for user
 	 *=============================================================================*/
-	std::vector<std::string> FindDisconnectedSessions( std::string session_dir, std::string user )
+	std::vector<std::string> FindDisconnectedSessions( std::string _session_dir, std::string _user )
 	{
 		ktrace_in( );
-		ktrace( "KSessionState::FindDisconnectedSessions( " << user << " )" );
+		ktrace( "KSessionState::FindDisconnectedSessions( " << _user << " )" );
 
 		std::vector<std::string> res;
 
 		//kts_<client_ip>_<kts_port>_<pid>_<state>_<user>_<date>
-		std::string path = session_dir + "\\kts_*_*_*_" + STATE_DISCONNECTED + "_" + user + "_*";
+		std::string path = _session_dir + "\\kts_*_*_*_" + STATE_DISCONNECTED + "_" + _user + "_*";
 
 		WIN32_FIND_DATA FindFileData;
 		
@@ -301,14 +301,14 @@ public:
 	/*==============================================================================
 	 * find disconnected files for user
 	 *=============================================================================*/
-	void DeleteAllSessions( std::string session_dir )
+	void DeleteAllSessions( std::string _session_dir )
 	{
 		ktrace_in( );
-		ktrace( "KSessionState::DeleteAllSessions( " << session_dir << " )" );
+		ktrace( "KSessionState::DeleteAllSessions( " << _session_dir << " )" );
 
 
 		//kts_<client_ip>_<kts_port>_<pid>_<state>_<user>_<date>
-		std::string path = session_dir + "\\kts_*_*_*_*_*_*";
+		std::string path = _session_dir + "\\kts_*_*_*_*_*_*";
 		std::string file;
 
 		WIN32_FIND_DATA FindFileData;
@@ -323,12 +323,12 @@ public:
 			return;
 		}
 
-		file = session_dir + "\\" + std::string( FindFileData.cFileName );
+		file = _session_dir + "\\" + std::string( FindFileData.cFileName );
 		if( !DeleteFile( file.c_str( ) ) ) kerror( "can't delete " << std::string( FindFileData.cFileName ) );
 
 		while( FindNextFile( hFind, &FindFileData ) != 0 ) 
 		{
-			file = session_dir + "\\" + std::string( FindFileData.cFileName );
+			file = _session_dir + "\\" + std::string( FindFileData.cFileName );
 			if( !DeleteFile( file.c_str( ) ) ) kerror( "can't delete " << std::string( FindFileData.cFileName ) );
 		}
 
@@ -364,12 +364,12 @@ public:
 	/*==============================================================================
 	 * set session directory
 	 *=============================================================================*/
-	void SetSessionDirectory( std::string session_dir )
+	void SetSessionDirectory( std::string _session_dir )
 	{
 		ktrace_in( );
-		ktrace( "KSessionState::KSessionState( " << session_dir << " )" );
+		ktrace( "KSessionState::KSessionState( " << _session_dir << " )" );
 
-		this->session_dir = session_dir;
+		this->session_dir = _session_dir;
 	}
 
 private:
@@ -509,17 +509,17 @@ public:
 	/*==============================================================================
 	 * set session state to started
 	 *=============================================================================*/
-	bool SetStateStarted( std::string client_ip, std::string client_port )
+	bool SetStateStarted( std::string _client_ip, std::string _client_port )
 	{
 		ktrace_in( );
-		ktrace( "KSessionState::SetStateStarted( " << client_ip << ", " << client_port << " )" );
+		ktrace( "KSessionState::SetStateStarted( " << _client_ip << ", " << _client_port << " )" );
 
 		if( this->state == STATE_CLOSED ) return false;
 
 		EnterCriticalSection( &this->cs );
 
-		this->client_ip = client_ip;
-		this->client_port = client_port;
+		this->client_ip = _client_ip;
+		this->client_port = _client_port;
 
 		bool ret = this->CreateStateFile( );
 
@@ -532,7 +532,7 @@ public:
 	/*==============================================================================
 	 * set session state to logged
 	 *=============================================================================*/
-	bool SetStateLogged( std::string user )
+	bool SetStateLogged( std::string _user )
 	{
 		ktrace_in( );
 		ktrace( "KSessionState::SetStateLogged( )" );
@@ -543,7 +543,7 @@ public:
 
 		this->DeleteStateFile( );
 
-		this->user = this->NormalizeUser( user );
+		this->user = this->NormalizeUser( _user );
 		this->state = STATE_LOGGED;
 
 		bool ret = this->CreateStateFile( );
@@ -648,7 +648,7 @@ private:
 			if( sessions[i].length( ) <= prefix.length( ) ) continue;
 			if( prefix == sessions[i].substr( 0, prefix.length( ) ) )
 			{
-				if( sessions[i].find("_"STATE_ZOMBIE"_") != std::string::npos ) continue;
+				if( sessions[i].find("_"+STATE_ZOMBIE+"_") != std::string::npos ) continue;
 
 				// we have found the session
 				session = sessions[i];
@@ -681,37 +681,37 @@ public:
 		// .\active-sessions\kts_<client_ip>_<kts_port>_<pid>_<state>_<user>
 		std::string zombie =  "";
 
-		if( session.find("_"STATE_DISCONNECTED"_") != std::string::npos )
+		if( session.find("_"+STATE_DISCONNECTED+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_DISCONNECTED"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_DISCONNECTED+"_", "_"+STATE_ZOMBIE+"_");
 		}
-		else if( session.find("_"STATE_STARTED"_") != std::string::npos )
+		else if( session.find("_"+STATE_STARTED+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_STARTED"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_STARTED+"_", "_"+STATE_ZOMBIE+"_");
 		}
-		else if( session.find("_"STATE_LOGGED"_") != std::string::npos )
+		else if( session.find("_"+STATE_LOGGED+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_LOGGED"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_LOGGED+"_", "_"+STATE_ZOMBIE+"_");
 		}
-		else if( session.find("_"STATE_SHELL"_") != std::string::npos )
+		else if( session.find("_"+STATE_SHELL+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_SHELL"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_SHELL+"_", "_"+STATE_ZOMBIE+"_");
 		}
-		else if( session.find("_"STATE_SFTP"_") != std::string::npos )
+		else if( session.find("_"+STATE_SFTP+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_SFTP"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_SFTP+"_", "_"+STATE_ZOMBIE+"_");
 		}
-		else if( session.find("_"STATE_PROXY"_") != std::string::npos )
+		else if( session.find("_"+STATE_PROXY+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_PROXY"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_PROXY+"_", "_"+STATE_ZOMBIE+"_");
 		}
-		else if( session.find("_"STATE_PIPE"_") != std::string::npos )
+		else if( session.find("_"+STATE_PIPE+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_PIPE"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_PIPE+"_", "_"+STATE_ZOMBIE+"_");
 		}
-		else if( session.find("_"STATE_CLOSED"_") != std::string::npos )
+		else if( session.find("_"+STATE_CLOSED+"_") != std::string::npos )
 		{
-			zombie = KWinsta::ReplaceString(session, "_"STATE_CLOSED"_", "_"STATE_ZOMBIE"_");
+			zombie = KWinsta::ReplaceString(session, "_"+STATE_CLOSED+"_", "_"+STATE_ZOMBIE+"_");
 		}
 
 		ktrace( "zombie = " << zombie );
@@ -794,14 +794,14 @@ private:
 	/*==============================================================================
 	 * convert domain\user to user@domain
 	 *=============================================================================*/
-	std::string NormalizeUser( std::string user )
+	std::string NormalizeUser( std::string _user )
 	{
 		ktrace_in( );
-		ktrace( "KSessionState::NormalizeUser( " << user << " )" );
+		ktrace( "KSessionState::NormalizeUser( " << _user << " )" );
 
-		if( user.find( "@" ) != std::string::npos ) return user;
+		if( _user.find( "@" ) != std::string::npos ) return _user;
 
-		size_t pos = user.find("\\");
+		size_t pos = _user.find("\\");
 
 		if( pos == std::string::npos ) 
 		{
@@ -811,16 +811,16 @@ private:
 			if( !GetComputerName( computer_name, &len ) )
 			{
 				kerror( "can't get computer name" );
-				return( user );
+				return( _user );
 			}
 			computer_name[ len ] = 0;
-			std::string user1 = user + "@" + std::string( computer_name );
+			std::string user1 = _user + "@" + std::string( computer_name );
 
 			KWinsta::ToLower( user1 );
 			return user1;
 		}
 
-		std::string user1 = user.substr( pos + 1 ) + "@" + user.substr( 0, pos );
+		std::string user1 = _user.substr( pos + 1 ) + "@" + _user.substr( 0, pos );
 
 		KWinsta::ToLower( user1 );
 		return user1;

@@ -52,7 +52,7 @@ public:
 		ktrace( "KSocketDup::SendSocket( " << ( int )s << ", " << pipeName << " )" );
 
 		WSAPROTOCOL_INFO pi;
-		DWORD pid;
+		DWORD _pid;
 		std::string buff;
 		KPipe pipe;
 
@@ -68,11 +68,11 @@ public:
 			return( false );
 		}
 
-		this->string2data( buff, ( char * )&pid, sizeof( pid ) );
-		ktrace( "pid = " << pid );
-		this->pid = pid;
+		this->string2data( buff, ( char * )&_pid, sizeof( _pid ) );
+		ktrace( "pid = " << _pid );
+		this->pid = _pid;
 
-		if( WSADuplicateSocket( s, pid, &pi ) != 0 )
+		if( WSADuplicateSocket( s, _pid, &pi ) != 0 )
 		{
 			ktrace( "WSADuplicateSocket( ):err" );
 			return( false );
@@ -103,7 +103,7 @@ public:
 		ktrace_in( );
 		ktrace( "KSocketDup::GetSocket( " << pipeName << " )" );
 
-		DWORD pid = GetCurrentProcessId( );
+		DWORD _pid = GetCurrentProcessId( );
 		KPipe pipe;
 		std::string buff;
 		WSAPROTOCOL_INFO pi;
@@ -117,8 +117,8 @@ public:
 
 		pipe.Accept( );
 
-		ktrace( "pid = " << pid );
-		this->data2string( buff, ( char * )&pid, sizeof( pid ) );
+		ktrace( "pid = " << _pid );
+		this->data2string( buff, ( char * )&_pid, sizeof( _pid ) );
 
 		if( !pipe.Write( buff ) )
 		{

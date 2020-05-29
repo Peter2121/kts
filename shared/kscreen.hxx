@@ -72,29 +72,29 @@ private:
 
 		ktrace( "KScreen::SetMagicMark( )" );
 
-		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		CONSOLE_SCREEN_BUFFER_INFO _csbi;
 		CHAR_INFO ci[ KScreen::buff_width ];
 
-		if( !this->con.GetConsoleInfo( csbi ) )
+		if( !this->con.GetConsoleInfo( _csbi ) )
 		{
 			ktrace( "this->con.GetConsoleInfo( ):err" );
 			return( false );
 		}
 
-		if( !this->con.HasScroll( csbi ) ) 
+		if( !this->con.HasScroll( _csbi ) ) 
 		{
 			ktrace( "mark not needed" );
 			return( true );
 		}
 
-		if( !this->con.GetOutputRowW( ci, KScreen::buff_width, csbi.srWindow.Top, &csbi ) )
+		if( !this->con.GetOutputRowW( ci, KScreen::buff_width, _csbi.srWindow.Top, &_csbi ) )
 		{
 			ktrace( "this->con.GetOutputRowW( ):err" );
 			return( false );
 		}
 
-		COORD cursor = { 0, csbi.srWindow.Top };
-		if( !this->con.SetCursor( cursor ) )
+		COORD _cursor = { 0, _csbi.srWindow.Top };
+		if( !this->con.SetCursor( _cursor ) )
 		{
 			ktrace( "this->con.SetCursor( ):err" );
 			return( false );
@@ -106,7 +106,7 @@ private:
 			return( false );
 		}
 
-		if( !this->con.SetCursor( csbi.dwCursorPosition ) )
+		if( !this->con.SetCursor( _csbi.dwCursorPosition ) )
 		{
 			ktrace( "this->con.SetCursor( ):err" );
 			return( false );

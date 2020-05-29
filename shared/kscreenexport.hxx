@@ -37,28 +37,28 @@ private:
 	/*==============================================================================
 	 * fix nscreen to reflect client screen
 	 *=============================================================================*/
-	std::string ClientServerMismatch( KScreen & nscreen )
+	std::string ClientServerMismatch( KScreen & _nscreen )
 	{
-		if( this->screen.X - 1 == nscreen.screen.Right
-		&&  this->screen.Y - 1 == nscreen.screen.Bottom - nscreen.screen.Top ) return( "." );
+		if( this->screen.X - 1 == _nscreen.screen.Right
+		&&  this->screen.Y - 1 == _nscreen.screen.Bottom - _nscreen.screen.Top ) return( "." );
 
-		if( nscreen.screen.Right > this->screen.X - 1 ) 
+		if( _nscreen.screen.Right > this->screen.X - 1 ) 
 		{
 				this->nscreen.screen.Right = this->screen.X - 1;
 				this->nscreen.screen.Left = 0;
 		}
 
 
-		if( nscreen.cursor.X > this->screen.X - 1 ) nscreen.cursor.X = 0;
-		if( nscreen.cursor.Y - nscreen.screen.Top > this->screen.Y - 1 ) nscreen.cursor.Y = 0;
+		if( _nscreen.cursor.X > this->screen.X - 1 ) _nscreen.cursor.X = 0;
+		if( _nscreen.cursor.Y - _nscreen.screen.Top > this->screen.Y - 1 ) _nscreen.cursor.Y = 0;
 
-		if( nscreen.screen.Bottom - nscreen.screen.Top > this->screen.Y - 1 )
+		if( _nscreen.screen.Bottom - _nscreen.screen.Top > this->screen.Y - 1 )
 		{
-			if( nscreen.screen.Top == nscreen.buff.Top && nscreen.screen.Bottom == nscreen.buff.Bottom )
+			if( _nscreen.screen.Top == _nscreen.buff.Top && _nscreen.screen.Bottom == _nscreen.buff.Bottom )
 			{
 				// no scroll back so fix the screen
-				nscreen.screen.Bottom = nscreen.screen.Top + this->screen.Y - 1;
-				nscreen.buff.Bottom = nscreen.screen.Top + this->screen.Y - 1;
+				_nscreen.screen.Bottom = _nscreen.screen.Top + this->screen.Y - 1;
+				_nscreen.buff.Bottom = _nscreen.screen.Top + this->screen.Y - 1;
 			}
 		}
 
@@ -87,7 +87,7 @@ private:
 	/*==============================================================================
 	 * check if needs flat screen export1
 	 *=============================================================================*/
-	bool NeedFlatScreen( const KScreen & nscreen, const KScreen & oscreen )
+	bool NeedFlatScreen( const KScreen & _nscreen, const KScreen & _oscreen )
 	{
 		ktrace_in( );
 
@@ -101,28 +101,28 @@ private:
 		}
 
 		// whole buff
-		if( nscreen.buff.Top == 0 )
+		if( _nscreen.buff.Top == 0 )
 		{
 			ktrace( "[ true ] - whole buff" );
 			return( true );
 		}
 
 		// screen size differ
-		if( ( nscreen.screen.Bottom - nscreen.screen.Top ) != ( oscreen.screen.Bottom - oscreen.screen.Top ) )
+		if( ( _nscreen.screen.Bottom - _nscreen.screen.Top ) != ( _oscreen.screen.Bottom - _oscreen.screen.Top ) )
 		{
 			ktrace( "[ true ] - screen differ" );
 			return( true );
 		}
 
 		// screen width differ
-		if( ( nscreen.screen.Right - nscreen.screen.Left ) != ( oscreen.screen.Right - oscreen.screen.Left ) )
+		if( ( _nscreen.screen.Right - _nscreen.screen.Left ) != ( _oscreen.screen.Right - _oscreen.screen.Left ) )
 		{
 			ktrace( "[ true ] - screen width differ" );
 			return( true );
 		}
 
 		// screen top
-		if( nscreen.screen.Top < oscreen.screen.Top )
+		if( _nscreen.screen.Top < _oscreen.screen.Top )
 		{
 			ktrace( "[ true ] - screen top" );
 			return( true );
@@ -130,7 +130,7 @@ private:
 
 		KConsole console;
 		// scrollback
-		if( console.HasScroll( nscreen.csbi ) != console.HasScroll( oscreen.csbi ) )
+		if( console.HasScroll( _nscreen.csbi ) != console.HasScroll( _oscreen.csbi ) )
 		{
 			ktrace( "[ true ] - scrollback differ" );
 			return( true );
@@ -146,16 +146,16 @@ private:
 	/*==============================================================================
 	 * get index of tje last visible char of the row
 	 *=============================================================================*/
-	int GetLastVisible( const KScreen & nscreen, int row )
+	int GetLastVisible( const KScreen & _nscreen, int row )
 	{
 		std::wstring blank = L" \t\r\n";
-		blank += std::wstring( 0, 1 );
+//		blank += std::wstring( 0, 1 );	// http://www.kpym.com/phpbb/viewtopic.php?t=504 : Visual Studio 2008 uses the constructor: basic_string(size_type n, charT c, const allocator_type& alloc = allocator_type());
 
 		int last;
-		for( last = nscreen.screen.Right; last >= 0; last-- )
+		for( last = _nscreen.screen.Right; last >= 0; last-- )
 		{
-			if( blank.find( nscreen.data[ row ][ last ].Char.UnicodeChar ) == std::wstring::npos
-			|| nscreen.data[ row ][ last ].Attributes != nscreen.csbi.wAttributes ) break;
+			if( blank.find( _nscreen.data[ row ][ last ].Char.UnicodeChar ) == std::wstring::npos
+			|| _nscreen.data[ row ][ last ].Attributes != _nscreen.csbi.wAttributes ) break;
 		}
 		return( last );
 	}
@@ -165,19 +165,19 @@ private:
 	/*==============================================================================
 	 * convert row to oscreen "screen" coords
 	 *=============================================================================*/
-	int to_oscreen( const KScreen & nscreen, const KScreen & oscreen, int row )
+	int to_oscreen( const KScreen & _nscreen, const KScreen & _oscreen, int row )
 	{
-		return( oscreen.screen.Top + ( row - nscreen.buff.Top ) );
+		return( _oscreen.screen.Top + ( row - _nscreen.buff.Top ) );
 	}
 
 private:
 	/*==============================================================================
 	 * convert row to nscreen "screen" coords
 	 *=============================================================================*/
-	SHORT to_nscreen( const KScreen & nscreen, const KScreen & oscreen, SHORT row )
+	SHORT to_nscreen( const KScreen & _nscreen, const KScreen & _oscreen, SHORT row )
 	{
-		SHORT ret = nscreen.buff.Top + ( row - oscreen.buff.Top );
-		if( ret > nscreen.buff.Bottom ) ret = nscreen.buff.Bottom;
+		SHORT ret = _nscreen.buff.Top + ( row - _oscreen.buff.Top );
+		if( ret > _nscreen.buff.Bottom ) ret = _nscreen.buff.Bottom;
 		return( ret );
 	}
 
@@ -194,22 +194,22 @@ private:
 	/*==============================================================================
 	 * get row difference
 	 *=============================================================================*/
-	std::string DiffRow( const KScreen & nscreen, const KScreen & oscreen, int row, int & col )
+	std::string DiffRow( const KScreen & _nscreen, const KScreen & _oscreen, int row, int & col )
 	{
 		ktrace_in( );
 
 		ktrace( "KScreenExport::DiffRow( )"  );
 
-		int oldrow = this->to_oscreen( nscreen, oscreen, row );
-		int last = nscreen.screen.Right;
+		int oldrow = this->to_oscreen( _nscreen, _oscreen, row );
+		int last = _nscreen.screen.Right;
 
-		if( this->dumb_client && row == nscreen.buff.Bottom ) last--;
+		if( this->dumb_client && row == _nscreen.buff.Bottom ) last--;
 
 		int from = -1;
 		int to = -2;
 		for( int i = 0; i <= last; i++ )
 		{
-			if( this->char_differ( nscreen.data[ row ][ i ], oscreen.data[ oldrow ][ i ] ) )
+			if( this->char_differ( _nscreen.data[ row ][ i ], _oscreen.data[ oldrow ][ i ] ) )
 			{
 				if( from == -1 ) from = i;
 				to = i;
@@ -217,7 +217,7 @@ private:
 		}
 
 		col = from;
-		if( oldrow > oscreen.cursor.Y )
+		if( oldrow > _oscreen.cursor.Y )
 		{
 			from = 0;
 			col = -1;
@@ -227,8 +227,8 @@ private:
 		for( int i = from; i <= to; i++ )
 		{
 			// !!!
-			export1 += this->telnet.Color( nscreen.data[ row ][ i ].Attributes );
-			export1 += this->telnet.Encode( nscreen.data[ row ][ i ].Char.UnicodeChar );
+			export1 += this->telnet.Color( _nscreen.data[ row ][ i ].Attributes );
+			export1 += this->telnet.Encode( _nscreen.data[ row ][ i ].Char.UnicodeChar );
 		}
 
 
@@ -239,7 +239,7 @@ private:
 	/*==============================================================================
 	 * get the difference btw screens
 	 *=============================================================================*/
-	std::string DiffScreen( const KScreen & nscreen, const KScreen & oscreen )
+	std::string DiffScreen( const KScreen & _nscreen, const KScreen & _oscreen )
 	{
 		ktrace_in( );
 		
@@ -249,8 +249,8 @@ private:
 		std::string export1;
 		int col;
 
-		cursor.X = oscreen.cursor.X;
-		cursor.Y = this->to_nscreen( nscreen, oscreen, oscreen.cursor.Y );
+		cursor.X = _oscreen.cursor.X;
+		cursor.Y = this->to_nscreen( _nscreen, _oscreen, _oscreen.cursor.Y );
 
 		// new        old
 		// -----      -----
@@ -262,9 +262,9 @@ private:
 
 		// export1 difference
 		SHORT i;
-		for( i = nscreen.buff.Top; this->to_oscreen( nscreen, oscreen, i ) <= oscreen.buff.Bottom; i++  )
+		for( i = _nscreen.buff.Top; this->to_oscreen( _nscreen, _oscreen, i ) <= _oscreen.buff.Bottom; i++  )
 		{
-			std::string tmp = this->DiffRow( nscreen, oscreen, i, col );
+			std::string tmp = this->DiffRow( _nscreen, _oscreen, i, col );
 
 			if( tmp != "" )
 			{
@@ -272,9 +272,9 @@ private:
 				if( col >= 0 )
 				{
 					// set posision it differs the oscreen cursor
-					if( col != cursor.X || this->to_oscreen( nscreen, oscreen, i ) != cursor.Y )
+					if( col != cursor.X || this->to_oscreen( _nscreen, _oscreen, i ) != cursor.Y )
 					{
-						export1 += this->telnet.GotoXY( col, i - nscreen.buff.Top );
+						export1 += this->telnet.GotoXY( col, i - _nscreen.buff.Top );
 					}
 					export1 += tmp;
 					cursor.X = ( SHORT )( col + tmp.length( ) );
@@ -291,30 +291,30 @@ private:
 		}
 
 		// export1 flat screen
-		export1 += this->FlatScreen( nscreen, i, nscreen.buff.Bottom, &cursor );
+		export1 += this->FlatScreen( _nscreen, i, _nscreen.buff.Bottom, &cursor );
 
 		// fix cursor pos
-		if( nscreen.cursor.X != cursor.X || nscreen.cursor.Y != cursor.Y )
+		if( _nscreen.cursor.X != cursor.X || _nscreen.cursor.Y != cursor.Y )
 		{
-			if( nscreen.cursor.Y - nscreen.buff.Top >= this->screen.Y && nscreen.cursor.X == 0 )
+			if( _nscreen.cursor.Y - _nscreen.buff.Top >= this->screen.Y && _nscreen.cursor.X == 0 )
 			{
 				export1 += "\n";
 //				for( int i = 0; i <= nscreen.cursor.Y - nscreen.buff.Top - this->screen.Y; i++ ) export1 += "\n";
 //				export1 += this->telnet.GotoXY( nscreen.cursor.X, this->screen.Y - 1 );
 			}
 			else
-				export1 += this->telnet.GotoXY( nscreen.cursor.X, nscreen.cursor.Y - nscreen.buff.Top );
+				export1 += this->telnet.GotoXY( _nscreen.cursor.X, _nscreen.cursor.Y - _nscreen.buff.Top );
 		}
 
 		// fix cursor pos on blank screen
 		if( export1 == "" )
 		{
-			if( nscreen.cursor.X != oscreen.cursor.X || nscreen.cursor.Y != oscreen.cursor.Y )
+			if( _nscreen.cursor.X != _oscreen.cursor.X || _nscreen.cursor.Y != _oscreen.cursor.Y )
 			{
-				export1 += this->telnet.GotoXY( nscreen.cursor.X, nscreen.cursor.Y - nscreen.buff.Top );
+				export1 += this->telnet.GotoXY( _nscreen.cursor.X, _nscreen.cursor.Y - _nscreen.buff.Top );
 			}
 		}
-		else export1 += this->telnet.GotoXY( nscreen.cursor.X, nscreen.cursor.Y - nscreen.buff.Top );
+		else export1 += this->telnet.GotoXY( _nscreen.cursor.X, _nscreen.cursor.Y - _nscreen.buff.Top );
 
 		return( export1 );
 	}
@@ -323,7 +323,7 @@ private:
 	/*==============================================================================
 	 * export1 a flat screen
 	 *=============================================================================*/
-	std::string FlatScreen( const KScreen & nscreen, SHORT top = -1, int bottom = -1, COORD * pcursor = 0 )
+	std::string FlatScreen( const KScreen & _nscreen, SHORT top = -1, int bottom = -1, COORD * pcursor = 0 )
 	{
 		ktrace_in( );
 
@@ -335,9 +335,9 @@ private:
 		if( top == -1 && bottom == -1 )
 		{
 			// we export1 the entire screen
-			export1 += this->telnet.Cls( nscreen.csbi.wAttributes );
-			top = nscreen.buff.Top;
-			bottom = nscreen.buff.Bottom;
+			export1 += this->telnet.Cls( _nscreen.csbi.wAttributes );
+			top = _nscreen.buff.Top;
+			bottom = _nscreen.buff.Bottom;
 		}
 
 
@@ -345,11 +345,11 @@ private:
 		for( SHORT i = top; i <= bottom; i++ )
 		{
 			std::string tmp;
-			for( int j = 0; j <= this->GetLastVisible( nscreen, i ); j++ )
+			for( int j = 0; j <= this->GetLastVisible( _nscreen, i ); j++ )
 			{
 				// !!!
-				tmp += this->telnet.Color( nscreen.data[ i ][ j ].Attributes );
-				tmp += this->telnet.Encode( nscreen.data[ i ][ j ].Char.UnicodeChar );
+				tmp += this->telnet.Color( _nscreen.data[ i ][ j ].Attributes );
+				tmp += this->telnet.Encode( _nscreen.data[ i ][ j ].Char.UnicodeChar );
 			}
 
 			if( tmp != "" )
@@ -368,14 +368,14 @@ private:
 			if( pcursor == 0 )
 			{
 				// fix cursor pos
-				if( nscreen.cursor.X != cursor.X || nscreen.cursor.Y != cursor.Y )
+				if( _nscreen.cursor.X != cursor.X || _nscreen.cursor.Y != cursor.Y )
 				{
-					if( nscreen.cursor.Y - nscreen.buff.Top >= this->screen.Y && nscreen.cursor.X == 0 )
+					if( _nscreen.cursor.Y - _nscreen.buff.Top >= this->screen.Y && _nscreen.cursor.X == 0 )
 					{
 						export1 += "\n";
 					}
 					else
-						export1 += this->telnet.GotoXY( nscreen.cursor.X, nscreen.cursor.Y - nscreen.buff.Top );
+						export1 += this->telnet.GotoXY( _nscreen.cursor.X, _nscreen.cursor.Y - _nscreen.buff.Top );
 				}
 			}
 		}
@@ -387,15 +387,15 @@ public:
 	/*==============================================================================
 	 * export1 the screen
 	 *=============================================================================*/
-	std::string Export( const KScreen & nscreen, const KScreen & oscreen )
+	std::string Export( const KScreen & _nscreen, const KScreen & _oscreen )
 	{
 		ktrace_in( );
 		ktrace_level( 0 );
 
 		ktrace( "KScreenExport::Export2( )" );
 
-		if( this->NeedFlatScreen( nscreen, oscreen ) ) return( this->FlatScreen( nscreen ) );
-		else return( this->DiffScreen( nscreen, oscreen ) );
+		if( this->NeedFlatScreen( _nscreen, _oscreen ) ) return( this->FlatScreen( _nscreen ) );
+		else return( this->DiffScreen( _nscreen, _oscreen ) );
 
 	}
 
