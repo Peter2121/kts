@@ -9,6 +9,7 @@
 #include "..\shared\KSocket.hxx"
 #include "..\shared\KSessionState.hxx"
 #include "..\shared\KIPBan.hxx"
+#include "..\shared\KDaemonParams.hxx"
 #include ".\KTermSessions.hxx"
 
 
@@ -23,9 +24,11 @@ private:
 	SERVICE_STATUS_HANDLE statusHandle;
 	HANDLE worker;
 
+	KDaemonParams params;
 	// =============================================================================
 	// params
 	// =============================================================================
+/*
 	struct Params
 	{
 		std::string service_name;
@@ -47,7 +50,7 @@ private:
 		Params( )
 		{
 			KIni ini;
-			ini.File( ".\\kts.ini" );
+			ini.File(KTS_INI_FILE);
 
 			ini.GetKey( "KDaemon", "service_name", this->service_name );
 			ini.GetKey( "KDaemon", "service_info", this->service_info );
@@ -73,7 +76,7 @@ private:
 			KWinsta::ExpandEnvironmentString( this->error_file );
 		}
 	} params;
-
+*/
 private:
 	// =============================================================================
 	// event handler so we don't die on console events
@@ -91,6 +94,7 @@ private:
 	// =============================================================================
 	KDaemon( )
 	{
+		params = KDaemonParams(KTS_INI_FILE);
 		ktrace_master_level( this->params.trace_level );
 		ktrace_error_file( this->params.error_file );
 		ktrace_trace_file( this->params.trace_file );

@@ -28,7 +28,7 @@ private:
 		Params( )
 		{
 			KIni ini;
-			ini.File( ".\\kts.ini" );
+			ini.File(KTS_INI_FILE);
 
 			
 			ini.GetKey( "KSession", "ban_max_connections", this->ban_max_connections );

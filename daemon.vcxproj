@@ -114,6 +114,7 @@
   <ItemGroup>
     <ClInclude Include="shared\KConsole.hxx" />
     <ClInclude Include="daemon\KDaemon.hxx" />
+    <ClInclude Include="shared\KDaemonParams.hxx" />
     <ClInclude Include="shared\KIni.hxx" />
     <ClInclude Include="shared\KIPBan.hxx" />
     <ClInclude Include="shared\KPipe.hxx" />

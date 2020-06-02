@@ -22,17 +22,23 @@ int main( int argc, char **argv )
 	kbegin_try_block;
 
 	KWinsta::SetKtsHome( );
+	
+	std::string iniFileName = KWinsta::GetCmdLineParam("-inifile:");
+	if (iniFileName == "")
+	{
+		iniFileName = KTS_INI_FILE;
+	}
 
 	if(KWinsta::GetCmdLineParam( "-ssh:" ) == "1" )
 	{
 		// run ssh mode
-		KSession session( true );
+		KSession session( true, iniFileName);
 		session.Run( );
 	}
 	else
 	{
 		// run telnet mode
-		KSession session( false );
+		KSession session( false, iniFileName);
 		session.Run( );
 	}
 

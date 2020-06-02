@@ -2,6 +2,7 @@
 
 #include "..\shared\KFlags.hxx"
 #include "..\shared\KSsh.hxx"
+#include "..\shared\KSessionParams.hxx"
 #include ".\KCommUtils.hxx"
 #include <vector>
 
@@ -30,26 +31,31 @@ private:
 	/*==============================================================================
 	 * params
 	 *=============================================================================*/
-	struct Params
+	KSessionParams params;
+	/*
+		 struct Params
 	{
 		int max_portforward_channels;
+
 
 		Params( )
 		{
 			KIni ini;
-			ini.File( ".\\kts.ini" );
+			ini.File(KTS_INI__ILE);
 
 			ini.GetKey( "KSession", "max_portforward_channels", this->max_portforward_channels );
 		}
 	} params;
+*/
 	
 
 public:
 	/*==============================================================================
 	 * constructor
 	 *=============================================================================*/
-	KPortForward( KSsh * ssh, KFlags * flags )
+	KPortForward( KSsh * ssh, KFlags * flags, std::string inifile)
 	{
+		params = KSessionParams(inifile);
 		ktrace_in( );
 		ktrace( "KPortForward::KPortForward( )" );
 

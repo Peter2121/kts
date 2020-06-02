@@ -128,6 +128,7 @@
     <ClInclude Include="shared\KIni.hxx" />
     <ClInclude Include="shared\KIPBan.hxx" />
     <ClInclude Include="shared\KKey.hxx" />
+    <ClInclude Include="shared\KSessionParams.hxx" />
     <ClInclude Include="shared\KPipe.hxx" />
     <ClInclude Include="session\KPortforward.hxx" />
     <ClInclude Include="shared\KPrcsGroup.hxx" />

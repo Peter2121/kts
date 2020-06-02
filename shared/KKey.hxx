@@ -21,8 +21,14 @@ private:
 	std::string lastClient;
 	int send_same_key_delay;
 	int send_key_delay;
+	std::string iniFileName;
 
 public:
+	KKey(std::string inifile)
+	{
+		this->iniFileName = inifile;
+	}
+	
 	/*==============================================================================
 	 * set window & handle internaly
 	 *=============================================================================*/
@@ -52,8 +58,8 @@ public:
 
 		KIni ini;
 
-		// get key send delay params from kts.ini file
-		ini.File( ".\\kts.ini" );
+		// get key send delay params from ini file
+		ini.File(this->iniFileName);
 
 		this->send_key_delay = 1;
 		this->send_same_key_delay = 50;
