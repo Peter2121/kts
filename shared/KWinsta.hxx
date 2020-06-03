@@ -23,13 +23,17 @@
 class KWinsta
 {
 public:
+	inline const static std::string DESKTOP_NAME = "ktsDESK";
+	inline static std::string winStaName = "";
+
+public:
 	// =============================================================================
 	// create the winsta and desktop
 	// =============================================================================
-	static bool CreateWinstaAndDesktop( std::string name )
+	static std::string CreateWinstaAndDesktop( )
 	{
 		ktrace_in( );
-		ktrace( "KWinsta::CreateWinstaAndDesktop( " << name << " )" );
+		ktrace( "KWinsta::CreateWinstaAndDesktop( )" );
 
 		HWINSTA hWinsta;
 		SECURITY_ATTRIBUTES sa;
@@ -41,25 +45,25 @@ public:
 		if( hOriWinsta==NULL )
 		{
 			ktrace( "GetProcessWindowStation( ):err" );
-			return( false );
+			return ( "" );
 		}
 
 		psd = HeapAlloc( GetProcessHeap( ), 0, SECURITY_DESCRIPTOR_MIN_LENGTH );
 		if( psd==NULL )
 		{
 			ktrace( "HeapAlloc( ):err" );
-			return( false );
+			return ( "" );
 		}
 
 		if( !InitializeSecurityDescriptor( psd, SECURITY_DESCRIPTOR_REVISION ) )
 		{
 			ktrace( "InitializeSecurityDescriptor( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( !SetSecurityDescriptorDacl( psd, TRUE, NULL, FALSE ) ){
 			ktrace( "SetSecurityDescriptorDacl( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		ZeroMemory( &sa, sizeof( sa ) );
@@ -67,36 +71,53 @@ public:
 		sa.lpSecurityDescriptor = psd;
 		sa.bInheritHandle = TRUE;
 
-		std::string winsta = name + "WINSTA";
+		const int buflen = 512;
+#ifdef UNICODE
+		wchar buf[buflen];
+#else
+		char buf[buflen];
+#endif
+		DWORD bufneeded = 0;
 
-		hWinsta=CreateWindowStation( winsta.c_str( ), 0, GENERIC_ALL, &sa );
+//		std::string winsta = name + "WINSTA"; ***** name = "kts"
+
+//		hWinsta = CreateWindowStation(winsta.c_str(), 0, GENERIC_ALL, &sa);
+		hWinsta=CreateWindowStation( "", 0, GENERIC_ALL, &sa );
 		if( hWinsta==NULL )
 		{
 			ktrace( "CreateWindowStation( ):err" );
-			return( false );
+			return( "" );
 		}
+
+		if (!GetUserObjectInformation(hWinsta, UOI_NAME, (PVOID)buf, buflen, &bufneeded))
+		{
+			ktrace("GetUserObjectInformation( ):err");
+			return( "" );
+		}
+
+		KWinsta::winStaName = buf;
 
 		if( SetSecurityInfo( hWinsta, SE_WINDOW_OBJECT 
 			, DACL_SECURITY_INFORMATION|PROTECTED_DACL_SECURITY_INFORMATION
 			, NULL, NULL, NULL, NULL )!=ERROR_SUCCESS )
 		{
 			ktrace( "SetSecurityInfo( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( !SetProcessWindowStation( hWinsta ) )
 		{
 			ktrace( "SetProcessWindowStation( ):err" );
-			return( false );
+			return( "" );
 		}
 
-		std::string desk = name + "DESK";
+		std::string desk = DESKTOP_NAME;
 
 		hDesk = CreateDesktop( desk.c_str( ), NULL, NULL, 0, GENERIC_ALL, &sa );
 		if( hDesk==NULL )
 		{
 			ktrace( "CreateDesktop( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( SetSecurityInfo( hDesk, SE_WINDOW_OBJECT 
@@ -104,13 +125,13 @@ public:
 			, NULL, NULL, NULL, NULL )!=ERROR_SUCCESS )
 		{
 			ktrace( "SetSecurityInfo( ):err" );
-			return( false );
+			return( "" );
 		}
 		
 		if( !SetProcessWindowStation( hOriWinsta ) )
 		{
 			ktrace( "SetProcessWindowStation( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		HeapFree( GetProcessHeap( ), 0, ( LPVOID )psd );
@@ -118,7 +139,7 @@ public:
 //		CloseHandle( hWinsta );
 //		CloseHandle( hOriWinsta );
 
-		return( true );
+		return(KWinsta::winStaName);
 	}
 private:
 	// =============================================================================
@@ -149,7 +170,10 @@ public:
 
 		ZeroMemory( &si, sizeof( si ) );
 		si.cb = sizeof( si );
-		si.lpDesktop = "ktsWINSTA\\ktsDESK";
+//		si.lpDesktop = "ktsWINSTA\\ktsDESK";
+		std::string deskname = KWinsta::winStaName + "\\" + KWinsta::DESKTOP_NAME;
+		si.lpDesktop = new char[deskname.length() + 1];
+		strcpy(si.lpDesktop,deskname.c_str());
 		si.dwFlags = STARTF_USESHOWWINDOW;
 		si.wShowWindow = SW_SHOW;
 

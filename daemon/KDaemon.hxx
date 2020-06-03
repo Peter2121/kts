@@ -25,6 +25,11 @@ private:
 	HANDLE worker;
 
 	KDaemonParams params;
+private:
+	inline static std::string iniFileName;
+	inline static bool isRunningWithoutService = false;
+	inline static std::string winStaName = "";
+
 	// =============================================================================
 	// params
 	// =============================================================================
@@ -94,7 +99,14 @@ private:
 	// =============================================================================
 	KDaemon( )
 	{
-		params = KDaemonParams(KTS_INI_FILE);
+		if(KDaemon::iniFileName.empty())
+		{
+			params = KDaemonParams(KTS_INI_FILE);
+		}
+		else
+		{
+			params = KDaemonParams(KDaemon::iniFileName);
+		}
 		ktrace_master_level( this->params.trace_level );
 		ktrace_error_file( this->params.error_file );
 		ktrace_trace_file( this->params.trace_file );
@@ -193,6 +205,7 @@ private:
 		ss.DeleteAllSessions( this->params.active_sessions_dir );
 
 		if( this->params.debug_flag ) return( true );
+		if(KDaemon::isRunningWithoutService) return(true);
 
 		this->worker = KWinsta::OpenThread( THREAD_ALL_ACCESS, false, GetCurrentThreadId( ) );
 		this->status.dwServiceType = SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS;
@@ -228,7 +241,7 @@ private:
 	// =============================================================================
 	// service main
 	// =============================================================================
-	static void _stdcall ServiceMain( unsigned long /*argc*/, char ** /*argv*/ )
+	static void _stdcall ServiceMain( unsigned long argc, char** argv )
 	{
 
 		ktrace_in( );
@@ -239,6 +252,17 @@ private:
 		ktrace( "KDaemon::ServiceMain( )" );
 
 		klog( "starting service" );
+
+		KDaemon::iniFileName = KTS_INI_FILE;
+
+		if (argc > 1)
+		{
+			if ((strcmp("-config", argv[1]) == 0) && (argc >= 3))
+			{
+				KDaemon::iniFileName = argv[2];
+				klog("ini file set to " << KDaemon::iniFileName);
+			}
+		}
 
 		if( !KDaemon::instance( )->InitService( ) )
 		{
@@ -253,9 +277,10 @@ private:
 		}
 
 		// create the kts desktop
-		if( !KWinsta::CreateWinstaAndDesktop( "kts" ) )
+		KDaemon::winStaName = KWinsta::CreateWinstaAndDesktop( );
+		if(KDaemon::winStaName.empty())
 		{
-			kerror( "KWinsta::CreateWinstaAndDesktop( kts ):err" );
+			kerror( "KWinsta::CreateWinstaAndDesktop( ):err" );
 
 			if( !KDaemon::instance( )->params.debug_flag ) return;
 		}
@@ -358,6 +383,7 @@ public:
 	{
 		ktrace_in( );
 		ktrace( "KDaemon::RunService( )" );
+		KDaemon::isRunningWithoutService = false;
 
 		SERVICE_TABLE_ENTRY service[] =
 		{
@@ -374,12 +400,44 @@ public:
 	// =============================================================================
 	// debug
 	// =============================================================================
-	static void Debug( )
+	static void Debug()
+	{
+		KDaemon::Debug(KTS_INI_FILE);
+	}
+	
+	static void Debug(char* inifile)
 	{
 		ktrace_in( );
-		ktrace( "KDaemon::Debug( )" );
+		ktrace( "KDaemon::Debug(inifile)" );
+		KDaemon::iniFileName = inifile;
+		KDaemon::isRunningWithoutService = true;
 		KDaemon::instance( )->params.debug_flag = true;
+		int _argc = 3;
+		char* _argv[3];
+		_argv[0] = EXE_DAEMON;
+		_argv[1] = "-config";
+		_argv[2] = inifile;
+		KDaemon::ServiceMain(_argc, _argv);
+	}
 
-		KDaemon::ServiceMain( 0, 0 );
+	static void Run()
+	{
+		KDaemon::Run(KTS_INI_FILE);
+	}
+
+	static void Run(char* inifile)
+	{
+		ktrace_in();
+		ktrace("KDaemon::Run(inifile)");
+		KDaemon::iniFileName = inifile;
+		KDaemon::isRunningWithoutService = true;
+//		KDaemon::instance()->params.debug_flag = true;
+
+		int _argc = 3;
+		char* _argv[3];
+		_argv[0] = EXE_DAEMON;
+		_argv[1] = "-config";
+		_argv[2] = inifile;
+		KDaemon::ServiceMain(_argc, _argv);
 	}
 };

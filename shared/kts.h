@@ -2,6 +2,8 @@
 
 #define KTS_INI_FILE			".\\kts.ini"
 #define KTS_VERSION				"1.19c"
+#define EXE_DAEMON				"daemon.exe"
+#define EXE_SESSION				"session.exe"
 
 #include "kts_base.h"
 
