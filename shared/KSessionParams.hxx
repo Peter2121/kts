@@ -74,7 +74,10 @@ public:
 	std::string kex_algo_list;
 	std::string encr_algo_list;
 	std::string mac_algo_list;
-	KSessionParams() : KSessionParams(KTS_INI_FILE) {}
+	int ban_max_connections;
+	std::string ban_ip_directory;
+
+//	KSessionParams() : KSessionParams(KTS_INI_FILE) {}
 
 	KSessionParams(std::string inifile)
 	{
@@ -148,6 +151,8 @@ public:
 		ini.GetKey("KSession", "encr_algo_list", this->encr_algo_list);
 		ini.GetKey("KSession", "mac_algo_list", this->mac_algo_list);
 		ini.GetKey("KSession", "max_portforward_channels", this->max_portforward_channels);
+		ini.GetKey("KSession", "ban_max_connections", this->ban_max_connections);
+		ini.GetKey("KSession", "ban_ip_directory", this->ban_ip_directory);
 
 		this->client_port = KWinsta::GetCmdLineParam("-port:");
 		this->client_ip = KWinsta::GetCmdLineParam("-ip:");
@@ -174,6 +179,8 @@ public:
 
 		KWinsta::ExpandEnvironmentString(this->auto_logon_init);
 		KWinsta::ExpandEnvironmentString(this->publickey_logon_init);
+
+		KWinsta::ExpandEnvironmentString(this->ban_ip_directory);
 
 	}
 };

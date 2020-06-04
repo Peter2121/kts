@@ -26,6 +26,9 @@ public:
 
 	KDaemonParams(std::string inifile)
 	{
+		ktrace_in();
+		ktrace("KDaemonParams::KDaemonParams( )");
+
 		KIni ini;
 		ini.File(inifile);
 

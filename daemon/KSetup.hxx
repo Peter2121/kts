@@ -487,7 +487,7 @@ public:
 	{
 		ktrace_in( );
 		ktrace_level( 10 );
-		ktrace( "KSetup::Install( )" );
+		ktrace( "KSetup::Install( _file )" );
 
 		KService service;
 		KIni ini;
@@ -505,7 +505,7 @@ public:
 		std::cout << "installing service \"" << service_name << "\"..." << std::endl;
 
 		std::string module1(module);
-		module1 = "\"" + module1 + "\"";
+		module1 = "\"" + module1 + "\" -config " + _file; 
 
 		DWORD error = service.Install( module1, service_name, service_info );
 		if( error != ERROR_SUCCESS )

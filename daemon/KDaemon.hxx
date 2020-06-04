@@ -101,12 +101,13 @@ private:
 	{
 		if(KDaemon::iniFileName.empty())
 		{
-			params = KDaemonParams(KTS_INI_FILE);
+			KDaemon::iniFileName = KTS_INI_FILE;
+//			params = KDaemonParams(KTS_INI_FILE);
 		}
-		else
-		{
+//		else
+//		{
 			params = KDaemonParams(KDaemon::iniFileName);
-		}
+//		}
 		ktrace_master_level( this->params.trace_level );
 		ktrace_error_file( this->params.error_file );
 		ktrace_trace_file( this->params.trace_file );
@@ -117,7 +118,7 @@ private:
 
 		ktrace( "KDaemon::KDaemon( )" );
 
-		klog( "daemon.exe started" );
+		klog( "daemon.exe started with parameters from " << KDaemon::iniFileName );
 
 		SetConsoleCtrlHandler( KDaemon::event_handler, true );
 	}
@@ -251,9 +252,9 @@ private:
 
 		ktrace( "KDaemon::ServiceMain( )" );
 
-		klog( "starting service" );
+		klog( "starting service with parameters from " << KDaemon::iniFileName);
 
-		KDaemon::iniFileName = KTS_INI_FILE;
+//		KDaemon::iniFileName = KTS_INI_FILE;
 
 		if (argc > 1)
 		{
@@ -300,13 +301,13 @@ private:
 		ktrace( "KDaemon::AcceptConnections( )" );
 
 		KSocket sock;
-		KIPBan ip_ban;
-
 		if( !sock.Listen( KDaemon::instance( )->params.port, KDaemon::instance( )->params.ip ) )
 		{
 			kerror( "sock.Listen( " << KDaemon::instance( )->params.port << " ):err" );
 			return;
 		}
+
+		KIPBan ip_ban(KDaemon::iniFileName);
 
 		while( true )
 		{
@@ -334,21 +335,26 @@ private:
 				continue;
 			}
 
+			std::string curDir = KWinsta::GetCurrentDirectory();
+			klog("working in directory: " << curDir);
 
 			STARTUPINFO si = {0};
 			PROCESS_INFORMATION pi = {0};
 
 			std::stringstream s;
-
-			s << "shlex.exe \"session.exe.lnk\" "
-				<< "\" -ppid:" << GetCurrentProcessId( ) 
-				<< " -ip:" << tmp.GetConnectionIP( )
-				<< " -port:" << tmp.GetConnectionPort( );
+//			s << curDir
+//			    << "\\shlex.exe \""
+			s << curDir << "\\session.exe "
+				<< " -ppid:" << GetCurrentProcessId()
+				<< " -ip:" << tmp.GetConnectionIP()
+				<< " -port:" << tmp.GetConnectionPort();
 
 			if( this->params.debug_flag ) s << " -debug:1";
 			if( this->params.use_ssh ) s << " -ssh:1";
 			else s << " -ssh:0";
-			s << "\"";
+			s << " -config:" << KDaemon::iniFileName;
+
+//			s << "\"";
 
 			si.cb = sizeof(si);
 
@@ -379,11 +385,12 @@ public:
 	// =============================================================================
 	// run service
 	// =============================================================================
-	static void RunService( )
+	static void RunService( std::string inifile )
 	{
 		ktrace_in( );
-		ktrace( "KDaemon::RunService( )" );
+		ktrace( "KDaemon::RunService( inifile )" );
 		KDaemon::isRunningWithoutService = false;
+		KDaemon::iniFileName = inifile;
 
 		SERVICE_TABLE_ENTRY service[] =
 		{

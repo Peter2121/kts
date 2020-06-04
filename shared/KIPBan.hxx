@@ -7,6 +7,7 @@
 #include <vector>
 #include "..\shared\kts.h"
 #include "..\shared\KConsole.hxx"
+#include "..\shared\KSessionParams.hxx"
 
 class KIPBan
 {
@@ -15,11 +16,12 @@ class KIPBan
 	 * var
 	 *=============================================================================*/
 private:
-	
+	KSessionParams params;
 private:
 	/*==============================================================================
 	 * params
 	 *=============================================================================*/
+/*
 	struct Params
 	{
 		int ban_max_connections;
@@ -37,9 +39,14 @@ private:
 			KWinsta::ExpandEnvironmentString( this->ban_ip_directory );
 		}
 	} params;
-
+*/
 public:
 	/*==============================================================================
+	 * constructors
+	 *=============================================================================*/
+	KIPBan(std::string inifile) : params(inifile) {}
+
+	 /*==============================================================================
 	 * IP counter struct
 	 *=============================================================================*/
 	struct KIPBAN_STATE

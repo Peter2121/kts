@@ -31,6 +31,8 @@ public:
 	// create the winsta and desktop
 	// =============================================================================
 	static std::string CreateWinstaAndDesktop( )
+	// TODO: check if we are working under LocalSystem account 
+	//       and use fixed name 'ktsWINSTA' for Windows Station Name in such case
 	{
 		ktrace_in( );
 		ktrace( "KWinsta::CreateWinstaAndDesktop( )" );
@@ -79,23 +81,35 @@ public:
 #endif
 		DWORD bufneeded = 0;
 
-//		std::string winsta = name + "WINSTA"; ***** name = "kts"
+		std::string winsta = "ktsWINSTA";
 
-//		hWinsta = CreateWindowStation(winsta.c_str(), 0, GENERIC_ALL, &sa);
-		hWinsta=CreateWindowStation( "", 0, GENERIC_ALL, &sa );
-		if( hWinsta==NULL )
+		if (KWinsta::IsLocalSystem())
 		{
-			ktrace( "CreateWindowStation( ):err" );
-			return( "" );
+			hWinsta = CreateWindowStation(winsta.c_str(), 0, GENERIC_ALL, &sa);
+			if (hWinsta == NULL)
+			{
+				ktrace("CreateWindowStation( winsta ):err");
+				return("");
+			}
+		}
+		else
+		{
+			hWinsta = CreateWindowStation("", 0, GENERIC_ALL, &sa);
+			if (hWinsta == NULL)
+			{
+				ktrace("CreateWindowStation( ):err");
+				return("");
+			}
+			if (!GetUserObjectInformation(hWinsta, UOI_NAME, (PVOID)buf, buflen, &bufneeded))
+			{
+				ktrace("GetUserObjectInformation( ):err");
+				return("");
+			}
+			winsta = buf;
 		}
 
-		if (!GetUserObjectInformation(hWinsta, UOI_NAME, (PVOID)buf, buflen, &bufneeded))
-		{
-			ktrace("GetUserObjectInformation( ):err");
-			return( "" );
-		}
-
-		KWinsta::winStaName = buf;
+		KWinsta::winStaName = winsta;
+		klog("CreateWinstaAndDesktop KWinsta::winStaName: " << KWinsta::winStaName);
 
 		if( SetSecurityInfo( hWinsta, SE_WINDOW_OBJECT 
 			, DACL_SECURITY_INFORMATION|PROTECTED_DACL_SECURITY_INFORMATION
@@ -163,6 +177,12 @@ public:
 
 		STARTUPINFO si;
 		SECURITY_ATTRIBUTES sa;
+
+		if (KWinsta::winStaName.empty())
+		{
+			klog("Error: KWinsta::winStaName is empty");
+			return( false );
+		}
 
 		ZeroMemory( &sa, sizeof( sa ));
 		sa.nLength = sizeof( sa );
@@ -234,69 +254,91 @@ public:
 	// =============================================================================
 	// set the winsta and desktop
 	// =============================================================================
-	static bool SetWinstaAndDesktop( std::string name )
+	static std::string SetWinstaAndDesktop( )
+	// TODO: check if we are working under LocalSystem account 
+	//       and use fixed name 'ktsWINSTA' for Windows Station Name in such case
 	{
 
 		ktrace_in( );
-		ktrace( "KWinsta::SetWinstaAndDesktop( " << name << " )" );
+		ktrace( "KWinsta::SetWinstaAndDesktop( )" );
 
 		HWINSTA hWinsta;
 		SECURITY_ATTRIBUTES sa;
 		HDESK hDesk;
 		PSECURITY_DESCRIPTOR psd;
 
+		std::string winsta = "ktsWINSTA";
+
+		if (KWinsta::winStaName.empty() && !KWinsta::IsLocalSystem())
+		{
+			klog("SetWinstaAndDesktop Error: KWinsta::winStaName is empty");
+			return("");
+		}
+
 		psd = HeapAlloc( GetProcessHeap( ), 0, SECURITY_DESCRIPTOR_MIN_LENGTH );
 		if( !psd )
 		{
 			ktrace( "HeapAlloc( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( !InitializeSecurityDescriptor( psd, SECURITY_DESCRIPTOR_REVISION ) )
 		{
 			ktrace( "InitializeSecurityDescriptor( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( !SetSecurityDescriptorDacl( psd, TRUE, NULL, FALSE ) )
 		{
 			ktrace( "SetSecurityDescriptorDacl( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		ZeroMemory( &sa, sizeof( sa ) );
 		sa.nLength = sizeof( sa );
 		sa.lpSecurityDescriptor = psd;
 		sa.bInheritHandle = TRUE;
-
-		std::string winsta = name + "WINSTA";
-		hWinsta = OpenWindowStation( winsta.c_str( ), TRUE, GENERIC_ALL );
-		if( hWinsta==NULL )
+		
+		if (KWinsta::IsLocalSystem())
 		{
-			ktrace( "OpenWindowStation( ):err" );
-			return( false );
+			hWinsta = OpenWindowStation(winsta.c_str(), TRUE, GENERIC_ALL);
+			if (hWinsta == NULL)
+			{
+				ktrace("OpenWindowStation( winsta ):err");
+				return("");
+			}
+			KWinsta::winStaName = winsta;
 		}
-	
+		else
+		{
+			hWinsta = OpenWindowStation(KWinsta::winStaName.c_str( ), TRUE, GENERIC_ALL );
+			if( hWinsta==NULL )
+			{
+				ktrace( "OpenWindowStation( KWinsta::winStaName ):err" );
+				return( "" );
+			}
+		}
+
 		if( SetSecurityInfo( hWinsta, SE_WINDOW_OBJECT 
 			, DACL_SECURITY_INFORMATION|PROTECTED_DACL_SECURITY_INFORMATION
 			, NULL, NULL, NULL, NULL )!=ERROR_SUCCESS )
 		{
 			ktrace( "SetSecurityInfo( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( !SetProcessWindowStation( hWinsta ) )
 		{
 			ktrace( "SetProcessWindowStation( ):err" );
-			return( false );
+			return( "" );
 		}
 
-		std::string desk = name + "DESK";
+		std::string desk = DESKTOP_NAME;
 		hDesk = OpenDesktop( desk.c_str( ), 0, TRUE, GENERIC_ALL | READ_CONTROL | WRITE_DAC |DESKTOP_WRITEOBJECTS | DESKTOP_READOBJECTS );
 		if( !hDesk )
 		{
 			ktrace( "OpenDesktop( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( SetSecurityInfo( hDesk, SE_WINDOW_OBJECT 
@@ -304,20 +346,20 @@ public:
 			, NULL, NULL, NULL, NULL )!=ERROR_SUCCESS )
 		{
 			ktrace( "SetSecurityInfo( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		if( !SetThreadDesktop( hDesk ) )
 		{
 			ktrace( "SetThreadDesktop( ):err" );
-			return( false );
+			return( "" );
 		}
 
 		HeapFree( GetProcessHeap( ), 0, ( LPVOID )psd );
 //		CloseHandle( hDesk );
 //		CloseHandle( hWinsta );
 
-		return( true );
+		return(KWinsta::winStaName);
 	}
 
 public:
@@ -542,6 +584,7 @@ public:
 		if( LoadUserProfile( token, &pi ) == 0 ) 
 		{
 			ktrace( "can't load user profile " << username );
+			kerror("KWinsta::LoadUserEnvironment( token, username ):err");
 			return( false );
 		}
 
@@ -709,6 +752,47 @@ public:
 		while( ret.find( from ) != std::string::npos ) ret = ret.replace( ret.find( from ), from.length(), to );
 
 		return ret;
+	}
+
+public:
+	// https://stackoverflow.com/questions/4023586/correct-way-to-find-out-if-a-service-is-running-as-the-system-user
+	static BOOL IsLocalSystem()
+	{
+		HANDLE hToken;
+		UCHAR bTokenUser[sizeof(TOKEN_USER) + 8 + 4 * SID_MAX_SUB_AUTHORITIES];
+		PTOKEN_USER pTokenUser = (PTOKEN_USER)bTokenUser;
+		ULONG cbTokenUser;
+		SID_IDENTIFIER_AUTHORITY siaNT = SECURITY_NT_AUTHORITY;
+		PSID pSystemSid;
+		BOOL bSystem;
+
+		// open process token
+		if (!OpenProcessToken(GetCurrentProcess(),
+			TOKEN_QUERY,
+			&hToken))
+			return FALSE;
+
+		// retrieve user SID
+		if (!GetTokenInformation(hToken, TokenUser, pTokenUser,
+			sizeof(bTokenUser), &cbTokenUser))
+		{
+			CloseHandle(hToken);
+			return FALSE;
+		}
+
+		CloseHandle(hToken);
+
+		// allocate LocalSystem well-known SID
+		if (!AllocateAndInitializeSid(&siaNT, 1, SECURITY_LOCAL_SYSTEM_RID,
+			0, 0, 0, 0, 0, 0, 0, &pSystemSid))
+			return FALSE;
+
+		// compare the user SID from the token with the LocalSystem SID
+		bSystem = EqualSid(pTokenUser->User.Sid, pSystemSid);
+
+		FreeSid(pSystemSid);
+
+		return bSystem;
 	}
 
 public:

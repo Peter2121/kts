@@ -30,24 +30,42 @@ void main( int argc, char **argv )
 
 	KWinsta::SetToModuleDirectory( );
 	KWinsta::SetKtsHome( );
+	bool haveConfigFileName = false;
 
 	if( argc == 1 )
 	{
-		KDaemon::RunService( );
+		KDaemon::RunService(KTS_INI_FILE);
 		return;
 	}
 
 	if( argc >= 2 )
 	{
+		if (strcmp("-config", argv[1]) == 0)
+		{
+			if(argc == 3)
+			{
+				if (strlen(argv[2]) > 2)
+					KDaemon::RunService(argv[2]);
+			}
+			usage();
+			return;
+		}
+
+		if (argc == 4)
+		{
+			if (strcmp("-config", argv[2]) == 0)
+			{
+				if (strlen(argv[3]) > 2)
+					haveConfigFileName = true;
+			}
+		}
+		
 		if( strcmp( "-debug", argv[ 1 ] ) == 0 )
 		{
-			if (argc == 4)
+			if (haveConfigFileName)
 			{
-				if (strcmp("-config", argv[2]) == 0)
-				{
-					KDaemon::Debug(argv[3]);
-					return;
-				}
+				KDaemon::Debug(argv[3]);
+				return;
 			}
 			else
 			{
@@ -58,25 +76,16 @@ void main( int argc, char **argv )
 
 		if (strcmp("-run", argv[1]) == 0)
 		{
-			if (argc == 4)
+			if (haveConfigFileName)
 			{
-				if (strcmp("-config", argv[2]) == 0)
-				{
-					KDaemon::Run(argv[3]);
-					return;
-				}
-			}
+				KDaemon::Run(argv[3]);
+				return;
+			}			
 			else
 			{
 				KDaemon::Run();
 				return;
 			}
-		}
-
-		if (strcmp("-config", argv[1]) == 0)
-		{
-			usage();
-			return;
 		}
 
 		// init trace
@@ -85,14 +94,73 @@ void main( int argc, char **argv )
 		ktrace_in( );
 		ktrace_level( 10 );
 		ktrace( "setup" );
-		// TODO: add custom ini file management *****************************
-		if( strcmp( "-install", argv[ 1 ] ) == 0 ) setup.Install( KTS_INI_FILE );
-		if( strcmp( "-uninstall", argv[ 1 ] ) == 0 ) setup.Uninstall( KTS_INI_FILE );
-		if( strcmp( "-start", argv[ 1 ] ) == 0 ) setup.Start( KTS_INI_FILE );
-		if( strcmp( "-stop", argv[ 1 ] ) == 0 ) setup.Stop( KTS_INI_FILE );
-		if( strcmp( "-rsakey", argv[ 1 ] ) == 0 ) setup.RSAKey( KTS_INI_FILE );
 
-		if( strcmp( "-setup", argv[ 1 ] ) == 0 ) setup.Run( KTS_INI_FILE );
+		if( strcmp( "-install", argv[ 1 ] ) == 0 ) 
+		{
+			if (haveConfigFileName)
+			{
+				setup.Install(argv[3]);
+			}
+			else
+			{
+				setup.Install(KTS_INI_FILE);
+			}
+		}
+		if( strcmp( "-uninstall", argv[ 1 ] ) == 0 ) 
+		{
+			if (haveConfigFileName)
+			{
+				setup.Uninstall(argv[3]);
+			}
+			else
+			{
+				setup.Install(KTS_INI_FILE);
+			}
+		}
+		if( strcmp( "-start", argv[ 1 ] ) == 0 )
+		{
+			if (haveConfigFileName)
+			{
+				setup.Start(argv[3]);
+			}
+			else
+			{
+				setup.Install(KTS_INI_FILE);
+			}
+		}
+		if( strcmp( "-stop", argv[ 1 ] ) == 0 )
+		{
+			if (haveConfigFileName)
+			{
+				setup.Stop(argv[3]);
+			}
+			else
+			{
+				setup.Install(KTS_INI_FILE);
+			}
+		}
+		if( strcmp( "-rsakey", argv[ 1 ] ) == 0 )
+		{
+			if (haveConfigFileName)
+			{
+				setup.RSAKey(argv[3]);
+			}
+			else
+			{
+				setup.Install(KTS_INI_FILE);
+			}
+		}
+		if( strcmp( "-setup", argv[ 1 ] ) == 0 )
+		{
+			if (haveConfigFileName)
+			{
+				setup.Run(argv[3]);
+			}
+			else
+			{
+				setup.Install(KTS_INI_FILE);
+			}
+		}
 
 	}
 	return;

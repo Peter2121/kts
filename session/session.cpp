@@ -23,7 +23,7 @@ int main( int argc, char **argv )
 
 	KWinsta::SetKtsHome( );
 	
-	std::string iniFileName = KWinsta::GetCmdLineParam("-inifile:");
+	std::string iniFileName = KWinsta::GetCmdLineParam("-config:");
 	if (iniFileName == "")
 	{
 		iniFileName = KTS_INI_FILE;

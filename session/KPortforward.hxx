@@ -53,9 +53,8 @@ public:
 	/*==============================================================================
 	 * constructor
 	 *=============================================================================*/
-	KPortForward( KSsh * ssh, KFlags * flags, std::string inifile)
+	KPortForward( KSsh * ssh, KFlags * flags, std::string inifile) : params(inifile)
 	{
-		params = KSessionParams(inifile);
 		ktrace_in( );
 		ktrace( "KPortForward::KPortForward( )" );
 

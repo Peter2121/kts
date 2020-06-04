@@ -65,6 +65,8 @@ private:
 	std::string pipe_name;
 	std::string ssh_first_read;
 	std::string iniFileName;
+	const std::string DESKTOP_NAME = "ktsDESK";
+	std::string winStaName;
 
 	// user params
 	std::string user;
@@ -98,10 +100,10 @@ public:
 	 * constructors
 	 *=============================================================================*/
 //	KSession( bool is_ssh ) : KSession( is_ssh, KTS_INI_FILE ) {}
-	KSession( bool is_ssh, std::string inifile )
+	KSession( bool is_ssh, std::string inifile ) : params(inifile)
 	{
-		params = KSessionParams(inifile);
 		this->iniFileName = inifile;
+		this->winStaName = "";
 		ktrace_master_level( this->params.trace_level );
 		ktrace_error_file( this->params.error_file );
 		ktrace_trace_file( this->params.trace_file );
@@ -112,7 +114,7 @@ public:
 		ktrace_level( 10 );
 		ktrace( "KSession::KSession( )" );
 
-		klog( "session.exe started " );
+		klog( "session.exe started with config file " << this->iniFileName );
 
 		ZeroMemory( &this->shell, sizeof( this->shell ) );
 		this->is_ssh = is_ssh;
@@ -177,7 +179,7 @@ private:
 //		this->sock = new KSocket( );
 		this->flags = new KFlags( );
 		this->session_state = new KSessionState( );
-		this->ip_ban = new KIPBan( );
+		this->ip_ban = new KIPBan( this->iniFileName );
 		this->pipe = new KPipe( );
 		this->auto_logon = new KAutoLogon( );
 		this->publickey_logon = new KPublickeyLogon( );
@@ -200,9 +202,9 @@ private:
 		KSocketDup dup;
 		this->pipe_name = "kts" + this->params.client_ip + "_" + this->params.client_port;
 		this->flags->Enable( "pipe_io_timeout" );
-		this->sock = new KSocket( dup.GetSocket( this->pipe_name ) );
+		this->sock = new KSocket( dup.GetSocket( this->pipe_name ) );	// frozen here
 		this->flags->Disable( "pipe_io_timeout" );
-		if( this->sock->GetSocket( ) == INVALID_SOCKET ) 
+		if( this->sock->GetSocket( ) == INVALID_SOCKET )
 		{
 			kerror( "sock:err" );
 			klog( "session.exe terminated" );
@@ -573,6 +575,7 @@ private:
 	// =============================================================================
 	DWORD LogonUser1( const std::string & user1, const std::string & pass )
 	{
+		DWORD error;
 		ktrace_in( );
 		ktrace( "KSession::LogonUser1( " << user1 << ", " << "********" << " )" );
 
@@ -605,7 +608,17 @@ private:
 
 		SetEnvironmentVariable( "KTS_USER", this->params.user.c_str( ) );
 
-		if( !KWinsta::SetWinstaAndDesktop( "kts" ) ) kerror( "KWinsta::SetWinstaAndDesktop( kts ):err" );
+		this->winStaName = KWinsta::SetWinstaAndDesktop( );
+		if (this->winStaName.empty())
+		{
+			kerror("KWinsta::SetWinstaAndDesktop( kts ):err");
+			this->winStaName = KWinsta::CreateWinstaAndDesktop();		
+			if (this->winStaName.empty())
+			{
+				kerror("KWinsta::CreateWinstaAndDesktop( kts ):err");
+				return (-1);
+			}
+		}
 
 		if( ::LogonUser( _user.c_str( ), NULL, pass.c_str( ), LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &this->token ) )
 		{
@@ -621,7 +634,7 @@ private:
    			return( ERROR_SUCCESS );
 		}
 
-		DWORD error = GetLastError( );
+		error = GetLastError( );
 		if( error == ERROR_PASSWORD_MUST_CHANGE ) 
 		{
 			klog( "password must change: [ " << _user << " ]" );
@@ -634,15 +647,15 @@ private:
 			return( ERROR_SUCCESS );
 		}
 
-if( this->params.debug_flag )
-{
-		this->session_state->SetStateLogged( _user );
-		return( ERROR_SUCCESS );
-}
-else
-{
-		return( error );
-}
+		if( this->params.debug_flag )
+		{
+				this->session_state->SetStateLogged( _user );
+				return( ERROR_SUCCESS );
+		}
+		else
+		{
+				return( error );
+		}
 	}
 
 
@@ -679,6 +692,12 @@ private:
 		ktrace_in( );
 		ktrace( "KSession::StartShell( " << this->user << ", " << this->token << " )" );
 
+		if (this->winStaName.empty())
+		{
+			klog("Error: winStaName is empty");
+			return(false);
+		}
+
 		KWinsta::LoadUserEnvironment( this->token, this->user );
 
 		STARTUPINFO si;
@@ -690,7 +709,11 @@ private:
 
 		ZeroMemory( &si, sizeof( si ) );
 		si.cb = sizeof( si );
-		si.lpDesktop = "ktsWINSTA\\ktsDESK";
+//		si.lpDesktop = "ktsWINSTA\\ktsDESK";
+		std::string deskname = this->winStaName + "\\" + this->DESKTOP_NAME;
+		si.lpDesktop = new char[deskname.length() + 1];
+		strcpy(si.lpDesktop, deskname.c_str());
+
 		si.dwFlags = STARTF_USESHOWWINDOW;
 		si.wShowWindow = SW_SHOW;
 
