@@ -342,9 +342,9 @@ private:
 			PROCESS_INFORMATION pi = {0};
 
 			std::stringstream s;
-//			s << curDir
-//			    << "\\shlex.exe \""
-			s << curDir << "\\session.exe "
+			s << curDir
+			    << "\\shlex.exe \""
+			    << curDir << "\\session.exe\" \""
 				<< " -ppid:" << GetCurrentProcessId()
 				<< " -ip:" << tmp.GetConnectionIP()
 				<< " -port:" << tmp.GetConnectionPort();
@@ -353,8 +353,7 @@ private:
 			if( this->params.use_ssh ) s << " -ssh:1";
 			else s << " -ssh:0";
 			s << " -config:" << KDaemon::iniFileName;
-
-//			s << "\"";
+			s << "\"";
 
 			si.cb = sizeof(si);
 

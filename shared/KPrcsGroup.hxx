@@ -50,6 +50,22 @@ public:
 	}
 
 public:
+	bool SetParent(DWORD dwParentId)
+	{
+		ktrace_in();
+		ktrace("KPrcsGroup::SetParent( " << dwParentId << " )");
+
+		if (m_dwParentId)
+		{
+			ktrace("parent already set");
+			return(false);
+		}
+
+		m_dwParentId = dwParentId;
+		return true;
+	}
+
+public:
 	/*============================================================================= 
 	 * create the job and set its parent
 	 *=============================================================================*/

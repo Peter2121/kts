@@ -581,11 +581,14 @@ public:
 		pi.dwSize = sizeof( pi );
 		pi.lpUserName = ( char * )username.c_str( );
 
-		if( LoadUserProfile( token, &pi ) == 0 ) 
+		if(KWinsta::IsLocalSystem())
 		{
-			ktrace( "can't load user profile " << username );
-			kerror("KWinsta::LoadUserEnvironment( token, username ):err");
-			return( false );
+			if( LoadUserProfile( token, &pi ) == 0 ) 
+			{
+				ktrace( "can't load user profile " << username );
+				kerror("KWinsta::LoadUserEnvironment( token, username ):err");
+				return( false );
+			}
 		}
 
 		void * environment = NULL;
@@ -620,6 +623,10 @@ public:
 			if( ! SetEnvironmentVariableW( var.c_str( ), val.c_str( ) ) )
 			{
 				ktrace( "can't set env variable " << wstring2string( var ) << " = " << wstring2string( val ) );
+			}
+			else
+			{
+				ktrace("successfully set env variable " << wstring2string(var) << " = " << wstring2string(val));
 			}
 			i++;
 			if( env[ i ] == 0 ) break;

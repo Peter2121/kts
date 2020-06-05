@@ -741,14 +741,16 @@ private:
 		EnterCriticalSection( &this->cs );
 
 		PROCESS_INFORMATION pri = {0};
-if( this->params.debug_flag )
-{
-		klog("debug_flag is set create process");
-		ret = CreateProcess( NULL, ( char * )this->params.shell_command.c_str( ), NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pri );
-}
-else
-		ret = CreateProcessAsUser( this->token, NULL, ( char * )this->params.shell_command.c_str( ), NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pri );
-
+		if( this->params.debug_flag || !KWinsta::IsLocalSystem())
+		{
+			klog("create process with current user");
+			ret = CreateProcess( NULL, ( char * )this->params.shell_command.c_str( ), NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pri );
+//			ret = CreateProcess("C:\\Windows\\system32\\cmd.exe", NULL, NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pri);			
+		}
+		else
+		{
+			ret = CreateProcessAsUser( this->token, NULL, ( char * )this->params.shell_command.c_str( ), NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pri );
+		}
 		if( ret )
 		{
 //			WaitForActiveShell( pri.hProcess );
@@ -757,7 +759,14 @@ else
 
 			this->session_state->SetStateShell( );
 
-			this->shell_group->CreateJob( this->shell.dwProcessId );
+			if(KWinsta::IsLocalSystem())
+			{
+				this->shell_group->CreateJob( this->shell.dwProcessId );
+			}
+			else
+			{
+				this->shell_group->SetParent(this->shell.dwProcessId);
+			}
 
 			LeaveCriticalSection( &this->cs );
 
