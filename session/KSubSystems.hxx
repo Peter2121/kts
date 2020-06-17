@@ -8,7 +8,7 @@ private:
 	/*==============================================================================
 	 * vars
 	 *=============================================================================*/
-	std::string subsystem_dir;
+	std::string subsystem_dir="";
 
 public:
 	/*==============================================================================
@@ -30,6 +30,12 @@ public:
 	{
 		ktrace_in( );
 		ktrace( "KSubSystems::CheckAccess( " << subsystem << " )" );
+
+		if (this->subsystem_dir.empty())
+		{
+			klog("subsystem_dir is empty - access is allowed");
+			return true;
+		}
 
 		std::string file = this->subsystem_dir + "\\" + subsystem + ".allowed";
 

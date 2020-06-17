@@ -62,6 +62,7 @@ public:
 	bool debug_flag;
 	bool allow_disconnected_sessions;
 	bool auto_reconnect_session;
+	bool auto_create_rsa_key;
 	//		bool allow_sftp;
 	//		bool allow_port_forwarding;
 	bool pipe_mode;
@@ -138,6 +139,7 @@ public:
 
 		ini.GetKey("KSession", "allow_disconnected_sessions", this->allow_disconnected_sessions);
 		ini.GetKey("KSession", "auto_reconnect_session", this->auto_reconnect_session);
+		ini.GetKey("KSession", "auto_create_rsa_key", this->auto_create_rsa_key);
 
 		ini.GetKey("KSession", "sftp_init", this->sftp_init);
 		ini.GetKey("KSession", "sftp_root", this->sftp_root);

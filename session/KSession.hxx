@@ -223,7 +223,7 @@ private:
 
 		if( this->is_ssh )
 		{
-			if( !this->ssh->Init( this->sock->GetSocket( ), this->params.rsakey_file ) )
+			if( !this->ssh->Init( this->sock->GetSocket( ), this->params.rsakey_file, "<default>", this->params.auto_create_rsa_key) )
 			{
 				kerror( "this->ssh.Init( ):err" );
 			}
@@ -573,6 +573,7 @@ private:
 	// =============================================================================
 	// logon user and start the shell
 	// =============================================================================
+	// TODO: block login of different user in application mode *********************
 	DWORD LogonUser1( const std::string & user1, const std::string & pass )
 	{
 		DWORD error;
@@ -658,6 +659,72 @@ private:
 		}
 	}
 
+	//
+	//	Logon user, authenticated by public key, without password
+	//
+	DWORD LogonUserWithoutPassword(const std::string & user1)
+	{
+		ktrace_in();
+		ktrace("KSession::LogonUserWithoutPassword( " << user1 << " )");
+
+		char buf[UNLEN + 1];
+		DWORD buflen = UNLEN + 1;
+		std::string curr_user = "";
+
+		if (KWinsta::IsLocalSystem())
+		{
+			// Not yet implemented
+			kerror("Not yet implemented");
+			return (-1);
+		}
+		else
+		{
+			this->params.user = user1;
+			SetEnvironmentVariable("KTS_USER", this->params.user.c_str());
+			if (!GetUserName(buf, &buflen))
+			{
+				kerror("cannot get current user name: " << GetLastError());
+				return -1;
+			}
+			curr_user = buf;
+			KWinsta::ToLower(curr_user);
+			if(user1 != curr_user)
+			{
+				kerror("user name does not match: " << user1 << " : " << curr_user);
+				return -1;
+			}
+
+			this->winStaName = KWinsta::SetWinstaAndDesktop();
+			if (this->winStaName.empty())
+			{
+				kerror("KWinsta::SetWinstaAndDesktop( kts ):err");
+				this->winStaName = KWinsta::CreateWinstaAndDesktop();
+				if (this->winStaName.empty())
+				{
+					kerror("KWinsta::CreateWinstaAndDesktop( kts ):err");
+					return (-1);
+				}
+			}
+
+			if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &this->token))
+			{
+				kerror("cannot get current process token: " << GetLastError());
+				return -1;
+			}
+
+			this->session_state->SetStateLogged(curr_user);
+
+			this->console->Write(this->params.login_successfull_message);
+
+			klog("login accepted: [ " << curr_user << " ]");
+
+			// release ip ban
+			this->ip_ban->ResetIPBanConnection(this->sock->GetConnectionIP());
+
+			return(ERROR_SUCCESS);
+
+		}
+	}
 
 private:
 	// =============================================================================
@@ -1165,7 +1232,7 @@ private:
 		ktrace( "KSession::LoginSSH( )" );
 
 		this->flags->Enable( "pass_timeout" );
-
+		bool pubkey_auth = false;
 		unsigned loop = 0;
 		while( true )
 		{
@@ -1181,6 +1248,7 @@ private:
 			std::string _user = this->ssh->username;
 			std::string pass = this->ssh->password;
 			std::string publickey = this->ssh->publickey;
+			pubkey_auth = false;
 
 			if(publickey != "" )
 			{
@@ -1193,6 +1261,7 @@ private:
 						_user = _user + "@" + domain;
 					}
 					klog("doing publickey authentication");
+					pubkey_auth = true;
 				}
 				else
 				{
@@ -1203,7 +1272,14 @@ private:
 			DWORD error;
 
 			this->user = _user;
-			error = this->LogonUser1( _user, pass );
+			if (pubkey_auth)
+			{
+				error = this->LogonUserWithoutPassword(_user);
+			}
+			else
+			{
+				error = this->LogonUser1( _user, pass );
+			}
 
 			if( error == ERROR_SUCCESS ) 
 			{
@@ -1285,11 +1361,12 @@ private:
 		ktrace_in( );
 		ktrace( "KSession::RunSftpInitScript( )" );
 
-		KWinsta::ExpandEnvironmentString( this->params.sftp_init );
-
-		KWinsta::LoadUserEnvironment( this->token, this->user );
-
-		KWinsta::RunCommandAsUser(this->token, this->params.sftp_init );
+		if(!this->params.sftp_init.empty())
+		{
+			KWinsta::ExpandEnvironmentString( this->params.sftp_init );
+			KWinsta::LoadUserEnvironment( this->token, this->user );
+			KWinsta::RunCommandAsUser(this->token, this->params.sftp_init );
+		}
 	}
 			
 private:

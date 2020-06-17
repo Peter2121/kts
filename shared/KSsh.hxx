@@ -8,6 +8,7 @@
 #include "..\shared\cl\cryptlib.h"
 #include "..\shared\KWinsta.hxx"
 
+const static std::string default_pass = "<default>";
 const static char my_pass[] = "klsdfij2SD:LM@)(3kmvei230-ifsd;lf12-=9";
 const static char my_file[] = ".\\private.ky";
 
@@ -499,13 +500,36 @@ public:
 	/*==============================================================================
 	 * create ssh session associated with socket
 	 *=============================================================================*/
-	bool Init( SOCKET _sock, std::string file = my_file, std::string pass = my_pass )
+	bool Init( SOCKET _sock, std::string file = my_file, std::string pass = my_pass, bool auto_create_key = false )
 	{
 		ktrace_in( );
 		ktrace( "KSsh::Init( " << ( int )_sock << ", " << file << " )" );
 
 		int _status = 0;
 		this->sock = _sock;
+
+		if (pass == default_pass)
+			pass = my_pass;
+
+		// Check if key file exists
+		DWORD res = GetFileAttributes(file.c_str());
+		if ( (res == INVALID_FILE_ATTRIBUTES) && (GetLastError() == ERROR_FILE_NOT_FOUND) )
+		{
+			if (auto_create_key)
+			{
+				klog("Creating new key file...");
+				if (!CreateRsaKey(file, pass))
+				{
+					kerror("Cannot create new RSA key file");
+					return false;
+				}
+			}
+			else
+			{
+				kerror("RSA key file is not available");
+				return false;
+			}
+		}
 
 		// load private RSA key
 		CRYPT_CONTEXT privKey;
@@ -571,6 +595,10 @@ public:
 		ktrace( "KSsh::CreateRsaKey( " << my_file << " )" );
 
 		int _status;
+
+		if (pass == default_pass)
+			pass = my_pass;
+
 		// Create a context for RSA
 		CRYPT_CONTEXT	privKeyContext;
 		int		keyLen	= 128;	// 1024 bit
