@@ -1399,7 +1399,11 @@ private:
 
 		// go to sftp_root folder, we don't care if this will fail
 		KWinsta::ExpandEnvironmentString( this->params.sftp_root );
-		SetCurrentDirectory( this->params.sftp_root.c_str() );
+		klog("Current directory: " << this->params.sftp_root);
+		if (!SetCurrentDirectory(this->params.sftp_root.c_str()))
+		{
+			kerror("Cannot change directory");
+		}
 
 		KCommUtils comm( this->sock, this->ssh, this->flags, this->is_ssh );
 

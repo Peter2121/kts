@@ -887,16 +887,24 @@ private:
 
 		std::vector<FILE_ATTRS> ret;
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return ret;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return ret;
+			}
 		}
+
 		ret = ls( dir );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return ret;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return ret;
+			}
 		}
 
 		return ret;
@@ -907,16 +915,24 @@ private:
 		ktrace_in();
 		ktrace( "KSftp::md_safe(" << dir << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
+		
 		bool ret = md( dir );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
@@ -927,16 +943,24 @@ private:
 		ktrace_in();
 		ktrace( "KSftp::rd_safe(" << dir << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) )
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
+		
 		bool ret = rd( dir );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
@@ -947,17 +971,23 @@ private:
 		ktrace_in();
 		ktrace( "KSftp::cd_safe(" << dir << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+			{
+				kerror( "ImpersonateLoggedOnUser" );
+				return false;
+			}
 		}
 
 		bool ret = cd( dir, isroot );
-		if( !RevertToSelf( ) )
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
@@ -968,17 +998,24 @@ private:
 		ktrace_in();
 		ktrace( "KSftp::del_safe(" << dir << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
 
 		bool ret = del( dir );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
@@ -989,73 +1026,108 @@ private:
 		ktrace_in();
 		ktrace( "KSftp::ren_safe(" << oldpath << ", " << newpath << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
-		}
-		bool ret = ren( oldpath, newpath );
-		if( !RevertToSelf( ) )
-		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
 
+		bool ret = ren( oldpath, newpath );
+		
+		if (KWinsta::IsLocalSystem())
+		{
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
+		}
+		
 		return ret;
 	}
+
 	static bool write_safe( const std::string & file, uint64 offset, const std::string & data )
 	{
 		ktrace_in();
 		ktrace( "KSftp::write_safe(" << file << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
+
 		bool ret = write( file, offset, data );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
 	}
+
 	static bool read_safe( const std::string & file, uint64 offset, uint32 len, std::string & data )
 	{
 		ktrace_in();
 		ktrace( "KSftp::read_safe(" << file << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
+		
 		bool ret = read( file, offset, len, data );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
 	}
+
 	static bool attrs_safe( const std::string & file, ATTRS & a )
 	{
 		ktrace_in();
 		ktrace( "KSftp::len_safe(" << file << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
+
 		bool ret = attrs( file, a );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
@@ -1066,16 +1138,24 @@ private:
 		ktrace_in();
 		ktrace( "KSftp::exist_safe(" << file << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
+
 		bool ret = exist( file );
-		if( !RevertToSelf( ) )
+
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
 
 		return ret;
@@ -1086,18 +1166,25 @@ private:
 		ktrace_in();
 		ktrace( "KSftp::create_safe(" << file << ")" );
 
-		if( !ImpersonateLoggedOnUser( GetUserToken( ) ) ) 
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "ImpersonateLoggedOnUser" );
-			return false;
+			if (!ImpersonateLoggedOnUser(GetUserToken()))
+			{
+				kerror("ImpersonateLoggedOnUser");
+				return false;
+			}
 		}
+		
 		bool ret = create( file );
-		if( !RevertToSelf( ) )
+		
+		if (KWinsta::IsLocalSystem())
 		{
-			kerror( "RevertToSelf" );
-			return false;
+			if (!RevertToSelf())
+			{
+				kerror("RevertToSelf");
+				return false;
+			}
 		}
-
 		return ret;
 	}
 	/*==============================================================================
