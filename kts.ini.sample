@@ -61,13 +61,14 @@ allow_sftp			=1
 ;
 ; sftp root folder
 ;
-sftp_root = "%USERPROFILE%"
+sftp_root = "%HOMEDRIVE%%HOMEPATH%"
 
 ;
 ; sftp init script
 ;
 ;sftp_init = "%COMSPEC% /C "scripts\sftp_init.bat""
-sftp_init = "C:\Users\Peter\Documents\Temp\kts\sftp_init.bat"
+;sftp_init = "C:\Users\Peter\Documents\Temp\kts\sftp_init.bat"
+sftp_init = ""
 
 ;
 ; 0 - kill disconnected sessions
@@ -82,6 +83,12 @@ allow_disconnected_sessions	=1
 auto_reconnect_session = 1
 
 ;
+; 0 - do not create new RSA key if key file is not found (failed connections)
+; 1 - automatically create new RSA key file if it is not found
+;
+auto_create_rsa_key = 1
+
+;
 ; 0 - normal mode
 ; 1 - pipe mode / this is suitable for script automation
 ; but will work for some command only
@@ -90,11 +97,13 @@ pipe_mode = 0
 
 rsakey_file					="C:\Users\Peter\Documents\Temp\kts\rsakey.ky"
 key_init					="C:\Users\Peter\Documents\Temp\kts\utf-8.ini"
-telnet_init					="C:\Users\Peter\Documents\Temp\kts\telnet.ini"
-auto_logon_init					="C:\Users\Peter\Documents\Temp\kts\auto_logon.ini"
-publickey_logon_init				="C:\Users\Peter\Documents\Temp\kts\publickey_logon.ini"
+;telnet_init					="C:\Users\Peter\Documents\Temp\kts\telnet.ini"
+telnet_init					=""
+;auto_logon_init				="C:\Users\Peter\Documents\Temp\kts\auto_logon.ini"
+auto_logon_init					=""
+publickey_logon_init				="C:\Users\Peter\Documents\Temp\kts\authorized_keys.ini"
 active_sessions_dir				="C:\Users\Peter\Documents\Temp\kts"
-subsystems_dir					="C:\Users\Peter\Documents\Temp\kts\subsystems"
+subsystems_dir					=""
 
 ;
 ; ip ban module
@@ -115,11 +124,7 @@ login_successfull_message	=	"\n\n"
 shell_dead_message		=	"\nlogout\n"
 
 ;
-; use ':' for separator
-; ex. to disable administrator for connecting to kts
-; change "forbidden_login_list" param to:
-; forbiden_login_list = ":administrator:"
-; note we use : on both sides of "administrator"
+; ACLs are managed via access to the files "subsystems\file-transfer.allow" "subsystems\terminal.allow" and "subsystems\port-forward.allow"
 ;
 ; to allow only the user "kpym" to connect KTS
 ; change "allowed_login_list" param to:
@@ -130,8 +135,7 @@ shell_dead_message		=	"\nlogout\n"
 ;forbidden_login_list		=	""
 ; this is configured via access to the files "subsystems\file-transfer.exe" "subsystems\terminal.exe" and "subsystems\port-forward.exe"
 
-shell_command				=	"C:\Windows\system32\cmd.exe"
-
+shell_command				=	"%ComSpec% /K cd %USERPROFILE%"
 default_user				=	""
 default_pass				=	""
 default_domain				=	""
@@ -142,7 +146,7 @@ default_domain				=	""
 ; 10 - normal trace
 ; 100 - no trace
 ;
-trace_level					=10
+trace_level					=0
 log_file					="C:\Users\Peter\Documents\Temp\kts\ksession-log.txt"
 trace_file					="C:\Users\Peter\Documents\Temp\kts\ksession-trace.txt"
 error_file					="C:\Users\Peter\Documents\Temp\kts\kts-sess.?pid.err"
