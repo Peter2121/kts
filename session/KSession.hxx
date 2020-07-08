@@ -1027,7 +1027,7 @@ private:
 
 		ktrace( "KSession::LoginSSHThread( " << p << " )" );
 
-		Sleep( 1000 );
+		Sleep( 2000 );
 
 		KSession * term = ( KSession * )p;
 

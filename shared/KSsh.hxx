@@ -235,7 +235,7 @@ public:
 		char error[1000];
 		int len = -1;
 
-		cryptGetAttributeString( this->cryptSession, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE, error, &len);
+		cryptGetAttributeString( this->cryptSession, CRYPT_ATTRIBUTE_ERRORMESSAGE, error, &len);
 
 		if( len < 0 ) return;
 

@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
-*								cryptlib Interface							*
-*						Copyright Peter Gutmann 1992-2009					*
+*								cryptlib Header File						*
+*						Copyright Peter Gutmann 1992-2012					*
 *																			*
 ****************************************************************************/
 
@@ -9,9 +9,9 @@
 
 #define _CRYPTLIB_DEFINED
 
-/* The current cryptlib version: 3.3.3 */
+/* The current cryptlib version: 3.4.2 */
 
-#define CRYPTLIB_VERSION	3330
+#define CRYPTLIB_VERSION	3420
 
 /* Fixup for Windows support.  We need to include windows.h for various types
    and prototypes needed for DLL's.  In addition wincrypt.h defines some
@@ -111,7 +111,7 @@
 	  #define C_RET	__declspec( dllimport ) int	/* Shared lib import ret.val.*/
 	#endif /* CRYPT_DEFINED */
   #endif /* Static vs. shared lib */
-#elif defined( __SYMBIAN__ )
+#elif defined( __SYMBIAN32__ )
   #ifdef _CRYPT_DEFINED
 	#define C_RET	EXPORT_C					/* DLL export ret.val.*/
   #else
@@ -142,15 +142,29 @@
   #else
 	#define C_NONNULL_ARG( argIndex )	__attribute__(( nonnull argIndex ))
   #endif /* _CRYPT_DEFINED */
-#elif defined( _MSC_VER ) && defined( _PREFAST_ ) 
-  #define C_CHECK_RETVAL			__checkReturn
-  #define C_NONNULL_ARG( argIndex )
-  #undef C_IN_OPT
-  #define C_IN_OPT					__in_opt const
-  #undef C_OUT_OPT
-  #define C_OUT_OPT					__out_opt
-  #undef C_INOUT
-  #define C_INOUT					__inout
+#elif defined( _MSC_VER ) && defined( _PREFAST_ )
+  #ifdef __ATTR_SAL				/* Attribute SAL */
+	#define C_CHECK_RETVAL			_Check_return_ \
+									_Success_( result == CRYPT_OK )
+	#define C_NONNULL_ARG( argIndex )
+	#undef C_IN_OPT
+	#define C_IN_OPT				_In_opt_ const
+	#undef C_OUT_OPT
+	#define C_OUT_OPT				_Out_opt_
+	#undef C_INOUT
+	#define C_INOUT					_Inout_
+  #else
+	#define C_CHECK_RETVAL			__checkReturn \
+									__success( result == CRYPT_OK ) \
+									__range( MAX_ERROR, CRYPT_OK )
+	#define C_NONNULL_ARG( argIndex )
+	#undef C_IN_OPT
+	#define C_IN_OPT				__in_opt const
+	#undef C_OUT_OPT
+	#define C_OUT_OPT				__out_opt
+	#undef C_INOUT
+	#define C_INOUT					__inout
+  #endif /* Declspec vs. Attribute SAL */
 #else
   #define C_CHECK_RETVAL
   #define C_NONNULL_ARG( argIndex )
@@ -185,41 +199,54 @@ typedef enum {						/* Algorithms */
 	/* Conventional encryption */
 	CRYPT_ALGO_DES,					/* DES */
 	CRYPT_ALGO_3DES,				/* Triple DES */
-	CRYPT_ALGO_IDEA,				/* IDEA */
-	CRYPT_ALGO_CAST,				/* CAST-128 */
-	CRYPT_ALGO_RC2,					/* RC2 */
+	CRYPT_ALGO_IDEA,				/* IDEA (only used for PGP 2.x) */
+	CRYPT_ALGO_CAST,				/* CAST-128 (only used for OpenPGP) */
+	CRYPT_ALGO_RC2,					/* RC2 (disabled by default) */
 	CRYPT_ALGO_RC4,					/* RC4 */
 	CRYPT_ALGO_RC5,					/* RC5 */
 	CRYPT_ALGO_AES,					/* AES */
 	CRYPT_ALGO_BLOWFISH,			/* Blowfish */
-	CRYPT_ALGO_SKIPJACK,			/* Skipjack */
 
 	/* Public-key encryption */
 	CRYPT_ALGO_DH = 100,			/* Diffie-Hellman */
 	CRYPT_ALGO_RSA,					/* RSA */
 	CRYPT_ALGO_DSA,					/* DSA */
 	CRYPT_ALGO_ELGAMAL,				/* ElGamal */
-	CRYPT_ALGO_KEA,					/* KEA */
+	CRYPT_ALGO_RESERVED1,			/* Formerly KEA */
 	CRYPT_ALGO_ECDSA,				/* ECDSA */
 	CRYPT_ALGO_ECDH,				/* ECDH */
 
 	/* Hash algorithms */
-	CRYPT_ALGO_MD2 = 200,			/* MD2 */
-	CRYPT_ALGO_MD4,					/* MD4 */
+	CRYPT_ALGO_RESERVED2 = 200,		/* Formerly MD2 */
+	CRYPT_ALGO_RESERVED3,			/* Formerly MD4 */
 	CRYPT_ALGO_MD5,					/* MD5 */
 	CRYPT_ALGO_SHA1,				/* SHA/SHA1 */
-		CRYPT_ALGO_SHA = CRYPT_ALGO_SHA1,	/* Older form */
+#ifdef KPYM_HACK
+	CRYPT_ALGO_SHA = CRYPT_ALGO_SHA1,	/* Older form */
+#endif
 	CRYPT_ALGO_RIPEMD160,			/* RIPE-MD 160 */
 	CRYPT_ALGO_SHA2,				/* SHA-256 */
+		CRYPT_ALGO_SHA256 = CRYPT_ALGO_SHA2,/* Alternate name */
 	CRYPT_ALGO_SHAng,				/* Future SHA-nextgen standard */
 
 	/* MAC's */
 	CRYPT_ALGO_HMAC_MD5 = 300,		/* HMAC-MD5 */
 	CRYPT_ALGO_HMAC_SHA1,			/* HMAC-SHA */
-		CRYPT_ALGO_HMAC_SHA = CRYPT_ALGO_HMAC_SHA1,	/* Older form */
+#ifdef KPYM_HACK
+	CRYPT_ALGO_HMAC_SHA = CRYPT_ALGO_HMAC_SHA1,	/* Older form */
+#endif
 	CRYPT_ALGO_HMAC_RIPEMD160,		/* HMAC-RIPEMD-160 */
 	CRYPT_ALGO_HMAC_SHA2,			/* HMAC-SHA2 */
 	CRYPT_ALGO_HMAC_SHAng,			/* HMAC-future-SHA-nextgen */
+
+#ifdef _CRYPT_DEFINED
+	/* Alongside the usual types we also need a generic secret-key store
+	   for use with mechanisms that convert a single secret value into
+	   multiple derived keying values like encryption keys, MAC keys,
+	   IVs, and so on.  The following algorithm type implements this 
+	   generic-secret crypto object */
+	CRYPT_IALGO_GENERIC_SECRET = 1000,/* Generic-secret object */
+#endif /* _CRYPT_DEFINED */
 
 	/* Vendors may want to use their own algorithms that aren't part of the
 	   general cryptlib suite.  The following values are for vendor-defined
@@ -231,18 +258,21 @@ typedef enum {						/* Algorithms */
 #endif /* USE_VENDOR_ALGOS */
 
 	CRYPT_ALGO_LAST,				/* Last possible crypt algo value */
+#ifdef _CRYPT_DEFINED
+	CRYPT_ALGO_LAST_EXTERNAL = CRYPT_ALGO_HMAC_SHAng + 1,
+#endif /* _CRYPT_DEFINED */
 
 	/* In order that we can scan through a range of algorithms with
 	   cryptQueryCapability(), we define the following boundary points for
 	   each algorithm class */
-	CRYPT_ALGO_FIRST_CONVENTIONAL = CRYPT_ALGO_DES,
-	CRYPT_ALGO_LAST_CONVENTIONAL = CRYPT_ALGO_DH - 1,
-	CRYPT_ALGO_FIRST_PKC = CRYPT_ALGO_DH,
-	CRYPT_ALGO_LAST_PKC = CRYPT_ALGO_MD2 - 1,
-	CRYPT_ALGO_FIRST_HASH = CRYPT_ALGO_MD2,
-	CRYPT_ALGO_LAST_HASH = CRYPT_ALGO_HMAC_MD5 - 1,
-	CRYPT_ALGO_FIRST_MAC = CRYPT_ALGO_HMAC_MD5,
-	CRYPT_ALGO_LAST_MAC = CRYPT_ALGO_HMAC_MD5 + 99	/* End of mac algo.range */
+	CRYPT_ALGO_FIRST_CONVENTIONAL = 1,
+	CRYPT_ALGO_LAST_CONVENTIONAL = 99,
+	CRYPT_ALGO_FIRST_PKC = 100,
+	CRYPT_ALGO_LAST_PKC = 199,
+	CRYPT_ALGO_FIRST_HASH = 200,
+	CRYPT_ALGO_LAST_HASH = 299,
+	CRYPT_ALGO_FIRST_MAC = 300,
+	CRYPT_ALGO_LAST_MAC = 399
 	} CRYPT_ALGO_TYPE;
 
 typedef enum {						/* Block cipher modes */
@@ -251,6 +281,7 @@ typedef enum {						/* Block cipher modes */
 	CRYPT_MODE_CBC,					/* CBC */
 	CRYPT_MODE_CFB,					/* CFB */
 	CRYPT_MODE_OFB,					/* OFB */
+	CRYPT_MODE_GCM,					/* GCM */
 	CRYPT_MODE_LAST					/* Last possible crypt mode value */
 	} CRYPT_MODE_TYPE;
 
@@ -270,16 +301,14 @@ typedef enum {						/* Keyset types */
 	CRYPT_KEYSET_LDAP,				/* LDAP directory service */
 	CRYPT_KEYSET_ODBC,				/* Generic ODBC interface */
 	CRYPT_KEYSET_DATABASE,			/* Generic RDBMS interface */
-	CRYPT_KEYSET_PLUGIN,			/* Generic database plugin */
 	CRYPT_KEYSET_ODBC_STORE,		/* ODBC certificate store */
 	CRYPT_KEYSET_DATABASE_STORE,	/* Database certificate store */
-	CRYPT_KEYSET_PLUGIN_STORE,		/* Database plugin certificate store */
 	CRYPT_KEYSET_LAST				/* Last possible keyset type */
 
 #ifdef _CRYPT_DEFINED
 	/* Useful defines used internally for range checking */
 	, CRYPT_FIRST_RDBMS = CRYPT_KEYSET_ODBC,
-	CRYPT_LAST_RDBMS = CRYPT_KEYSET_PLUGIN_STORE
+	CRYPT_LAST_RDBMS = CRYPT_KEYSET_DATABASE_STORE
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_KEYSET_TYPE;
 
@@ -287,7 +316,7 @@ typedef enum {						/* Keyset types */
 
 typedef enum {						/* Crypto device types */
 	CRYPT_DEVICE_NONE,				/* No crypto device */
-	CRYPT_DEVICE_FORTEZZA,			/* Fortezza card */
+	CRYPT_DEVICE_FORTEZZA,			/* Fortezza card - Placeholder only */
 	CRYPT_DEVICE_PKCS11,			/* PKCS #11 crypto token */
 	CRYPT_DEVICE_CRYPTOAPI,			/* Microsoft CryptoAPI */
 	CRYPT_DEVICE_HARDWARE,			/* Generic crypo HW plugin */
@@ -353,7 +382,8 @@ typedef enum {
 	/* Alongside the usual types we can also wind up with various protocol-
 	   specific format types such as SSL and SSH.  The following types are
 	   only visible internally */
-	CRYPT_IFORMAT_SSL,				/* SSL format */
+	CRYPT_IFORMAT_SSL,				/* SSL/TLS format */
+	CRYPT_IFORMAT_TLS12,			/* TLS 1.2 format */
 	CRYPT_IFORMAT_SSH,				/* SSH format */
 #endif /* _CRYPT_DEFINED */
 	CRYPT_FORMAT_LAST				/* Last possible format type */
@@ -437,8 +467,7 @@ typedef enum {
 	/* Extended error information */
 	CRYPT_ATTRIBUTE_ERRORTYPE,		/* Type of last error */
 	CRYPT_ATTRIBUTE_ERRORLOCUS,		/* Locus of last error */
-	CRYPT_ATTRIBUTE_INT_ERRORCODE,	/* Low-level software-specific */
-	CRYPT_ATTRIBUTE_INT_ERRORMESSAGE, /*   error code and message */
+	CRYPT_ATTRIBUTE_ERRORMESSAGE,	/* Detailed error description */
 
 	/* Generic information */
 	CRYPT_ATTRIBUTE_CURRENT_GROUP,	/* Cursor mgt: Group in attribute list */
@@ -570,11 +599,10 @@ typedef enum {
 	CRYPT_CERTINFO_CERTTYPE,		/* Certificate object type */
 	CRYPT_CERTINFO_FINGERPRINT,		/* Certificate fingerprints */
 		CRYPT_CERTINFO_FINGERPRINT_MD5 = CRYPT_CERTINFO_FINGERPRINT,
-	CRYPT_CERTINFO_FINGERPRINT_SHA,
-#if 0	/* Not enabled until the next minor-version rev */
+	CRYPT_CERTINFO_FINGERPRINT_SHA1,
+		CRYPT_CERTINFO_FINGERPRINT_SHA = CRYPT_CERTINFO_FINGERPRINT_SHA1,
 	CRYPT_CERTINFO_FINGERPRINT_SHA2,
 	CRYPT_CERTINFO_FINGERPRINT_SHAng,
-#endif /* 0 */
 	CRYPT_CERTINFO_CURRENT_CERTIFICATE,/* Cursor mgt: Rel.pos in chain/CRL/OCSP */
 	CRYPT_CERTINFO_TRUSTED_USAGE,	/* Usage that cert is trusted for */
 	CRYPT_CERTINFO_TRUSTED_IMPLICIT,/* Whether cert is implicitly trusted */
@@ -634,6 +662,7 @@ typedef enum {
 	CRYPT_CERTINFO_EDIPARTYNAME_NAMEASSIGNER,	/* ediPartyName.nameAssigner */
 	CRYPT_CERTINFO_EDIPARTYNAME_PARTYNAME,	/* ediPartyName.partyName */
 	CRYPT_CERTINFO_UNIFORMRESOURCEIDENTIFIER,	/* uniformResourceIdentifier */
+		CRYPT_CERTINFO_URL = CRYPT_CERTINFO_UNIFORMRESOURCEIDENTIFIER,
 	CRYPT_CERTINFO_IPADDRESS,				/* iPAddress */
 	CRYPT_CERTINFO_REGISTEREDID,			/* registeredID */
 
@@ -679,6 +708,21 @@ typedef enum {
 	CRYPT_CERTINFO_QCSTATEMENT_REGISTRATIONAUTHORITY,
 					/* qcStatement.statementInfo.nameRegistrationAuthorities */
 
+	/* 1 3 6 1 5 5 7 1 7 ipAddrBlocks */
+	CRYPT_CERTINFO_IPADDRESSBLOCKS,
+	CRYPT_CERTINFO_IPADDRESSBLOCKS_ADDRESSFAMILY,	/* addressFamily */
+/*	CRYPT_CERTINFO_IPADDRESSBLOCKS_INHERIT,	// ipAddress.inherit */
+	CRYPT_CERTINFO_IPADDRESSBLOCKS_PREFIX,	/* ipAddress.addressPrefix */
+	CRYPT_CERTINFO_IPADDRESSBLOCKS_MIN,		/* ipAddress.addressRangeMin */
+	CRYPT_CERTINFO_IPADDRESSBLOCKS_MAX,		/* ipAddress.addressRangeMax */
+
+	/* 1 3 6 1 5 5 7 1 8 autonomousSysIds */
+	CRYPT_CERTINFO_AUTONOMOUSSYSIDS,
+/*	CRYPT_CERTINFO_AUTONOMOUSSYSIDS_ASNUM_INHERIT,// asNum.inherit */
+	CRYPT_CERTINFO_AUTONOMOUSSYSIDS_ASNUM_ID,	/* asNum.id */
+	CRYPT_CERTINFO_AUTONOMOUSSYSIDS_ASNUM_MIN,	/* asNum.min */
+	CRYPT_CERTINFO_AUTONOMOUSSYSIDS_ASNUM_MAX,	/* asNum.max */
+
 	/* 1 3 6 1 5 5 7 48 1 2 ocspNonce */
 	CRYPT_CERTINFO_OCSP_NONCE,				/* nonce */
 
@@ -694,8 +738,11 @@ typedef enum {
 
 	/* 1 3 6 1 5 5 7 48 1 11 subjectInfoAccess */
 	CRYPT_CERTINFO_SUBJECTINFOACCESS,
-	CRYPT_CERTINFO_SUBJECTINFO_CAREPOSITORY,/* accessDescription.accessLocation */
 	CRYPT_CERTINFO_SUBJECTINFO_TIMESTAMPING,/* accessDescription.accessLocation */
+	CRYPT_CERTINFO_SUBJECTINFO_CAREPOSITORY,/* accessDescription.accessLocation */
+	CRYPT_CERTINFO_SUBJECTINFO_SIGNEDOBJECTREPOSITORY,/* accessDescription.accessLocation */
+	CRYPT_CERTINFO_SUBJECTINFO_RPKIMANIFEST,/* accessDescription.accessLocation */
+	CRYPT_CERTINFO_SUBJECTINFO_SIGNEDOBJECT,/* accessDescription.accessLocation */
 
 	/* 1 3 36 8 3 1 siggDateOfCertGen */
 	CRYPT_CERTINFO_SIGG_DATEOFCERTGEN,
@@ -706,14 +753,34 @@ typedef enum {
 	CRYPT_CERTINFO_SIGG_PROCURE_TYPEOFSUBSTITUTION,	/* typeOfSubstitution */
 	CRYPT_CERTINFO_SIGG_PROCURE_SIGNINGFOR,	/* signingFor.thirdPerson */
 
+	/* 1 3 36 8 3 3 siggAdmissions */
+	CRYPT_CERTINFO_SIGG_ADMISSIONS,
+	CRYPT_CERTINFO_SIGG_ADMISSIONS_AUTHORITY,	/* authority */
+	CRYPT_CERTINFO_SIGG_ADMISSIONS_NAMINGAUTHID,	/* namingAuth.iD */
+	CRYPT_CERTINFO_SIGG_ADMISSIONS_NAMINGAUTHURL,	/* namingAuth.uRL */
+	CRYPT_CERTINFO_SIGG_ADMISSIONS_NAMINGAUTHTEXT,	/* namingAuth.text */
+	CRYPT_CERTINFO_SIGG_ADMISSIONS_PROFESSIONITEM,	/* professionItem */
+	CRYPT_CERTINFO_SIGG_ADMISSIONS_PROFESSIONOID,	/* professionOID */
+	CRYPT_CERTINFO_SIGG_ADMISSIONS_REGISTRATIONNUMBER,	/* registrationNumber */
+
 	/* 1 3 36 8 3 4 siggMonetaryLimit */
 	CRYPT_CERTINFO_SIGG_MONETARYLIMIT,
 	CRYPT_CERTINFO_SIGG_MONETARY_CURRENCY,	/* currency */
 	CRYPT_CERTINFO_SIGG_MONETARY_AMOUNT,	/* amount */
 	CRYPT_CERTINFO_SIGG_MONETARY_EXPONENT,	/* exponent */
 
+	/* 1 3 36 8 3 5 siggDeclarationOfMajority */
+	CRYPT_CERTINFO_SIGG_DECLARATIONOFMAJORITY,
+	CRYPT_CERTINFO_SIGG_DECLARATIONOFMAJORITY_COUNTRY,	/* fullAgeAtCountry */
+
 	/* 1 3 36 8 3 8 siggRestriction */
 	CRYPT_CERTINFO_SIGG_RESTRICTION,
+
+	/* 1 3 36 8 3 13 siggCertHash */
+	CRYPT_CERTINFO_SIGG_CERTHASH,
+
+	/* 1 3 36 8 3 15 siggAdditionalInformation */
+	CRYPT_CERTINFO_SIGG_ADDITIONALINFORMATION,
 
 	/* 1 3 101 1 4 1 strongExtranet */
 	CRYPT_CERTINFO_STRONGEXTRANET,
@@ -835,14 +902,55 @@ typedef enum {
 	CRYPT_CERTINFO_EXTKEY_NS_SERVERGATEDCRYPTO,	/* serverGatedCrypto */
 	CRYPT_CERTINFO_EXTKEY_VS_SERVERGATEDCRYPTO_CA,	/* serverGatedCrypto CA */
 
+	/* 2 5 29 40 crlStreamIdentifier */
+	CRYPT_CERTINFO_CRLSTREAMIDENTIFIER,
+
 	/* 2 5 29 46 freshestCRL */
 	CRYPT_CERTINFO_FRESHESTCRL,
 	CRYPT_CERTINFO_FRESHESTCRL_FULLNAME,	/* distributionPointName.fullName */
 	CRYPT_CERTINFO_FRESHESTCRL_REASONS,		/* reasons */
 	CRYPT_CERTINFO_FRESHESTCRL_CRLISSUER,	/* cRLIssuer */
 
+	/* 2 5 29 47 orderedList */
+	CRYPT_CERTINFO_ORDEREDLIST,
+
+	/* 2 5 29 51 baseUpdateTime */
+	CRYPT_CERTINFO_BASEUPDATETIME,
+
+	/* 2 5 29 53 deltaInfo */
+	CRYPT_CERTINFO_DELTAINFO,
+	CRYPT_CERTINFO_DELTAINFO_LOCATION,		/* deltaLocation */
+	CRYPT_CERTINFO_DELTAINFO_NEXTDELTA,		/* nextDelta */
+
 	/* 2 5 29 54 inhibitAnyPolicy */
 	CRYPT_CERTINFO_INHIBITANYPOLICY,
+
+	/* 2 5 29 58 toBeRevoked */
+	CRYPT_CERTINFO_TOBEREVOKED,
+	CRYPT_CERTINFO_TOBEREVOKED_CERTISSUER,	/* certificateIssuer */
+	CRYPT_CERTINFO_TOBEREVOKED_REASONCODE,	/* reasonCode */
+	CRYPT_CERTINFO_TOBEREVOKED_REVOCATIONTIME,	/* revocationTime */
+	CRYPT_CERTINFO_TOBEREVOKED_CERTSERIALNUMBER,/* certSerialNumber */
+
+	/* 2 5 29 59 revokedGroups */
+	CRYPT_CERTINFO_REVOKEDGROUPS,
+	CRYPT_CERTINFO_REVOKEDGROUPS_CERTISSUER,/* certificateIssuer */
+	CRYPT_CERTINFO_REVOKEDGROUPS_REASONCODE,/* reasonCode */
+	CRYPT_CERTINFO_REVOKEDGROUPS_INVALIDITYDATE,/* invalidityDate */
+	CRYPT_CERTINFO_REVOKEDGROUPS_STARTINGNUMBER,/* startingNumber */
+	CRYPT_CERTINFO_REVOKEDGROUPS_ENDINGNUMBER,	/* endingNumber */
+
+	/* 2 5 29 60 expiredCertsOnCRL */
+	CRYPT_CERTINFO_EXPIREDCERTSONCRL,
+
+	/* 2 5 29 63 aaIssuingDistributionPoint */
+	CRYPT_CERTINFO_AAISSUINGDISTRIBUTIONPOINT,
+	CRYPT_CERTINFO_AAISSUINGDIST_FULLNAME,	/* distributionPointName.fullName */
+	CRYPT_CERTINFO_AAISSUINGDIST_SOMEREASONSONLY,/* onlySomeReasons */
+	CRYPT_CERTINFO_AAISSUINGDIST_INDIRECTCRL,	/* indirectCRL */
+	CRYPT_CERTINFO_AAISSUINGDIST_USERATTRCERTS,	/* containsUserAttributeCerts */
+	CRYPT_CERTINFO_AAISSUINGDIST_AACERTS,	/* containsAACerts */
+	CRYPT_CERTINFO_AAISSUINGDIST_SOACERTS,	/* containsSOAPublicKeyCerts */
 
 	/* 2 16 840 1 113730 1 x Netscape extensions */
 	CRYPT_CERTINFO_NS_CERTTYPE,				/* netscape-cert-type */
@@ -912,8 +1020,24 @@ typedef enum {
 	CRYPT_CERTINFO_CMS_SMIMECAP_RC5,		/* RC5 encryption (w.128 key) */
 	CRYPT_CERTINFO_CMS_SMIMECAP_SKIPJACK,	/* Skipjack encryption */
 	CRYPT_CERTINFO_CMS_SMIMECAP_DES,		/* DES encryption */
+	CRYPT_CERTINFO_CMS_SMIMECAP_SHAng,		/* SHA2-ng hash */
+	CRYPT_CERTINFO_CMS_SMIMECAP_SHA2,		/* SHA2-256 hash */
+	CRYPT_CERTINFO_CMS_SMIMECAP_SHA1,		/* SHA1 hash */
+	CRYPT_CERTINFO_CMS_SMIMECAP_HMAC_SHAng,	/* HMAC-SHA2-ng MAC */
+	CRYPT_CERTINFO_CMS_SMIMECAP_HMAC_SHA2,	/* HMAC-SHA2-256 MAC */
+	CRYPT_CERTINFO_CMS_SMIMECAP_HMAC_SHA1,	/* HMAC-SHA1 MAC */
+	CRYPT_CERTINFO_CMS_SMIMECAP_AUTHENC256,	/* AuthEnc w.256-bit key */
+	CRYPT_CERTINFO_CMS_SMIMECAP_AUTHENC128,	/* AuthEnc w.128-bit key */
+	CRYPT_CERTINFO_CMS_SMIMECAP_RSA_SHAng,	/* RSA with SHA-ng signing */
+	CRYPT_CERTINFO_CMS_SMIMECAP_RSA_SHA2,	/* RSA with SHA2-256 signing */
+	CRYPT_CERTINFO_CMS_SMIMECAP_RSA_SHA1,	/* RSA with SHA1 signing */
+	CRYPT_CERTINFO_CMS_SMIMECAP_DSA_SHA1,	/* DSA with SHA-1 signing */
+	CRYPT_CERTINFO_CMS_SMIMECAP_ECDSA_SHAng,/* ECDSA with SHA-ng signing */
+	CRYPT_CERTINFO_CMS_SMIMECAP_ECDSA_SHA2,	/* ECDSA with SHA2-256 signing */
+	CRYPT_CERTINFO_CMS_SMIMECAP_ECDSA_SHA1,	/* ECDSA with SHA-1 signing */
 	CRYPT_CERTINFO_CMS_SMIMECAP_PREFERSIGNEDDATA,	/* preferSignedData */
 	CRYPT_CERTINFO_CMS_SMIMECAP_CANNOTDECRYPTANY,	/* canNotDecryptAny */
+	CRYPT_CERTINFO_CMS_SMIMECAP_PREFERBINARYINSIDE,	/* preferBinaryInside */
 
 	/* 1 2 840 113549 1 9 16 2 1 receiptRequest */
 	CRYPT_CERTINFO_CMS_RECEIPTREQUEST,
@@ -954,6 +1078,11 @@ typedef enum {
 	CRYPT_CERTINFO_CMS_SIGNINGCERTIFICATE,
 	CRYPT_CERTINFO_CMS_SIGNINGCERT_ESSCERTID, /* certs.essCertID */
 	CRYPT_CERTINFO_CMS_SIGNINGCERT_POLICIES,/* policies.policyInformation.policyIdentifier */
+
+	/* 1 2 840 113549 1 9 16 2 47 signingCertificateV2 */
+	CRYPT_CERTINFO_CMS_SIGNINGCERTIFICATEV2,
+	CRYPT_CERTINFO_CMS_SIGNINGCERTV2_ESSCERTIDV2, /* certs.essCertID */
+	CRYPT_CERTINFO_CMS_SIGNINGCERTV2_POLICIES,/* policies.policyInformation.policyIdentifier */
 
 	/* 1 2 840 113549 1 9 16 2 15 signaturePolicyID */
 	CRYPT_CERTINFO_CMS_SIGNATUREPOLICYID,
@@ -1102,15 +1231,15 @@ typedef enum {
 	CRYPT_SESSINFO_CACERTIFICATE,	/* Issuing CA certificate */
 
 	/* Protocol-specific information */
-	CRYPT_SESSINFO_TSP_MSGIMPRINT,	/* TSP message imprint */
 	CRYPT_SESSINFO_CMP_REQUESTTYPE,	/* Request type */
-	CRYPT_SESSINFO_CMP_PKIBOOT,		/* Unused, to be removed in 3.4 */
 	CRYPT_SESSINFO_CMP_PRIVKEYSET,	/* Private-key keyset */
 	CRYPT_SESSINFO_SSH_CHANNEL,		/* SSH current channel */
 	CRYPT_SESSINFO_SSH_CHANNEL_TYPE,/* SSH channel type */
 	CRYPT_SESSINFO_SSH_CHANNEL_ARG1,/* SSH channel argument 1 */
 	CRYPT_SESSINFO_SSH_CHANNEL_ARG2,/* SSH channel argument 2 */
 	CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE,/* SSH channel active */
+	CRYPT_SESSINFO_SSL_OPTIONS,		/* SSL/TLS protocol options */
+	CRYPT_SESSINFO_TSP_MSGIMPRINT,	/* TSP message imprint */
 
 	/* Used internally */
 	CRYPT_SESSINFO_LAST, CRYPT_USERINFO_FIRST = 7000,
@@ -1166,8 +1295,6 @@ typedef enum {
 	CRYPT_IATTRIBUTE_KEYID,			/* Key ID */
 	CRYPT_IATTRIBUTE_KEYID_PGP2,	/* PGP 2 key ID */
 	CRYPT_IATTRIBUTE_KEYID_OPENPGP,	/* OpenPGP key ID */
-	CRYPT_IATTRIBUTE_KEY_KEADOMAINPARAMS,/* Key agreement domain parameters */
-	CRYPT_IATTRIBUTE_KEY_KEAPUBLICVALUE,/* Key agreement public value */
 	CRYPT_IATTRIBUTE_KEY_SPKI,		/* SubjectPublicKeyInfo */
 	CRYPT_IATTRIBUTE_KEY_PGP,		/* PGP-format public key */
 	CRYPT_IATTRIBUTE_KEY_SSH,		/* SSH-format public key */
@@ -1179,6 +1306,10 @@ typedef enum {
 	CRYPT_IATTRIBUTE_DEVICEOBJECT,	/* Device object handle */
 	CRYPT_IATTRIBUTE_DEVICESTORAGEID,/* Storage ID for data in device */
 	CRYPT_IATTRIBUTE_EXISTINGLABEL,	/* Existing label for object in device */
+	CRYPT_IATTRIBUTE_ENCPARAMS,		/* Encryption params for generic-secret */
+	CRYPT_IATTRIBUTE_MACPARAMS,		/* MAC params for generic-secret */
+	CRYPT_IATTRIBUTE_AAD,			/* AAD for authenticated-encr.modes */
+	CRYPT_IATTRIBUTE_ICV,			/* ICV for authenticated-encr.modes */
 
 	/* Certificate internal attributes */
 	CRYPT_IATTRIBUTE_SUBJECT,		/* SubjectName */
@@ -1187,7 +1318,8 @@ typedef enum {
 	CRYPT_IATTRIBUTE_HOLDERNAME,	/* Best approximation to cert.owner name */
 	CRYPT_IATTRIBUTE_HOLDERURI,		/* Best approximation to cert.owner URI */
 	CRYPT_IATTRIBUTE_SPKI,			/* Encoded SubjectPublicKeyInfo */
-	CRYPT_IATTRIBUTE_CERTHASHALGO,	/* Hash algo.used for cert */
+	CRYPT_IATTRIBUTE_CERTKEYALGO,	/* PKC algo.used for certificate */
+	CRYPT_IATTRIBUTE_CERTHASHALGO,	/* Hash algo.used for certificate */
 	CRYPT_IATTRIBUTE_CERTCOLLECTION,/* Certs added to cert chain */
 	CRYPT_IATTRIBUTE_CRLENTRY,		/* Individual entry from CRL */
 	CRYPT_IATTRIBUTE_RESPONDERURL,	/* RTCS/OCSP responder name */
@@ -1200,8 +1332,6 @@ typedef enum {
 	CRYPT_IATTRIBUTE_ESSCERTID,		/* ESSCertID */
 	CRYPT_IATTRIBUTE_CERTCOPY,		/* Copy of cert object */
 	CRYPT_IATTRIBUTE_CERTCOPY_DATAONLY,	/* Copy of cert object as data-only cert */
-	CRYPT_IATTRIBUTE_FINGERPRINT_SHA2,/* Certificate fingerprint: SHA-2 */
-	CRYPT_IATTRIBUTE_FINGERPRINT_SHAng,/* Certificate fingerprint: SHAng */
 
 	/* Device internal attributes */
 	CRYPT_IATTRIBUTE_ENTROPY,		/* Polled entropy data */
@@ -1251,7 +1381,7 @@ typedef enum {
 	CRYPT_CERTINFO_FIRST_CMS = CRYPT_CERTINFO_CMS_CONTENTTYPE,
 	CRYPT_CERTINFO_LAST_CMS = CRYPT_CERTINFO_LAST - 1,
 	CRYPT_SESSINFO_FIRST_SPECIFIC = CRYPT_SESSINFO_REQUEST,
-	CRYPT_SESSINFO_LAST_SPECIFIC = CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE
+	CRYPT_SESSINFO_LAST_SPECIFIC = CRYPT_SESSINFO_TSP_MSGIMPRINT
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_ATTRIBUTE_TYPE;
 
@@ -1510,6 +1640,22 @@ typedef enum {
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_CERTACTION_TYPE;
 
+/* SSL/TLS protocol options.  CRYPT_SSLOPTION_MINVER_SSLV3 is the same as 
+   CRYPT_SSLOPTION_NONE since this is the default */
+
+#define CRYPT_SSLOPTION_NONE				0x00
+#define CRYPT_SSLOPTION_MINVER_SSLV3		0x00	/* Min.protocol version */
+#define CRYPT_SSLOPTION_MINVER_TLS10		0x01
+#define CRYPT_SSLOPTION_MINVER_TLS11		0x02
+#define CRYPT_SSLOPTION_MINVER_TLS12		0x03
+#define CRYPT_SSLOPTION_SUITEB_128			0x04	/* SuiteB security levels */
+#define CRYPT_SSLOPTION_SUITEB_256			0x08
+#define CRYPT_SSLOPTION_DISABLE_NAMEVERIFY	0x10	/* Disable cert hostname check */
+#define CRYPT_SSLOPTION_DISABLE_CERTVERIFY	0x20	/* Disable certificate check */
+#ifdef _CRYPT_DEFINED
+#define CRYPT_SSLOPTION_MAX					0x3F	/* Defines for range checking */
+#endif /* _CRYPT_DEFINED */
+
 /****************************************************************************
 *																			*
 *								General Constants							*
@@ -1530,9 +1676,10 @@ typedef enum {
 #define CRYPT_MAX_PKCSIZE		512
 #define CRYPT_MAX_PKCSIZE_ECC	72
 
-/* The maximum hash size - 256 bits */
+/* The maximum hash size - 512 bits.  Before 3.4 this was 256 bits, in the 
+   3.4 release it was increased to 512 bits to accommodate SHA-3 */
 
-#define CRYPT_MAX_HASHSIZE		32
+#define CRYPT_MAX_HASHSIZE		64
 
 /* The maximum size of a text string (e.g.key owner name) */
 
@@ -1687,10 +1834,10 @@ typedef struct {
 	} CRYPT_PKCINFO_DLP;
 
 typedef enum {
-	/* Named ECC curves.  When updating these remember to also update the 
-	   ECC fieldSizeInfo table in context/kg_ecc.c, the eccOIDinfo table and 
-	   sslEccCurveInfo table in context/key_rd.c, and the curveIDTbl in 
-	   session/ssl.c */
+	/* Named ECC curves.  Since these need to be mapped to all manner of
+	   protocol- and mechanism-specific identifiers, when updating this list 
+	   grep for occurrences of CRYPT_ECCCURVE_P256 (the most common one) and
+	   check whether any related mapping tables need to be updated */
 	CRYPT_ECCCURVE_NONE,		/* No ECC curve type */
 	CRYPT_ECCCURVE_P192,		/* NIST P192/X9.62 P192r1/SECG p192r1 curve */
 	CRYPT_ECCCURVE_P224,		/* NIST P224/X9.62 P224r1/SECG p224r1 curve */
@@ -1855,12 +2002,6 @@ C_RET cryptDestroyObject( C_IN CRYPT_HANDLE cryptObject );
 
 C_CHECK_RETVAL \
 C_RET cryptGenerateKey( C_IN CRYPT_CONTEXT cryptContext );
-C_CHECK_RETVAL \
-C_RET cryptGenerateKeyAsync( C_IN CRYPT_CONTEXT cryptContext );
-C_CHECK_RETVAL \
-C_RET cryptAsyncQuery( C_IN CRYPT_HANDLE cryptObject );
-C_CHECK_RETVAL \
-C_RET cryptAsyncCancel( C_IN CRYPT_HANDLE cryptObject );
 
 /* Encrypt/decrypt/hash a block of memory */
 
@@ -1895,7 +2036,6 @@ C_RET cryptDeleteAttribute( C_IN CRYPT_HANDLE cryptHandle,
    or key data.  These are due to be replaced once a suitable alternative can
    be found */
 
-C_NONNULL_ARG( ( 1 ) ) \
 C_RET cryptAddRandom( C_IN void C_PTR randomData, C_IN int randomDataLength );
 C_CHECK_RETVAL C_NONNULL_ARG( ( 1, 3 ) ) \
 C_RET cryptQueryObject( C_IN void C_PTR objectData,
