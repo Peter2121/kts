@@ -7,7 +7,6 @@
 #include <string>
 #include <userenv.h>
 #include <lm.h>
-
 #include "..\shared\KTrace.hxx"
 
 #define WINSTA_ALL (WINSTA_ACCESSCLIPBOARD  | WINSTA_ACCESSGLOBALATOMS | WINSTA_CREATEDESKTOP | WINSTA_ENUMDESKTOPS \
@@ -271,7 +270,7 @@ public:
 
 		if (KWinsta::winStaName.empty() && !KWinsta::IsLocalSystem())
 		{
-			klog("SetWinstaAndDesktop Error: KWinsta::winStaName is empty");
+			klog("SetWinstaAndDesktop: KWinsta::winStaName is empty");
 			return("");
 		}
 

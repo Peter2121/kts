@@ -697,7 +697,7 @@ private:
 			this->winStaName = KWinsta::SetWinstaAndDesktop();
 			if (this->winStaName.empty())
 			{
-				kerror("KWinsta::SetWinstaAndDesktop( kts ):err");
+//				kerror("KWinsta::SetWinstaAndDesktop( kts ):err");
 				this->winStaName = KWinsta::CreateWinstaAndDesktop();
 				if (this->winStaName.empty())
 				{
