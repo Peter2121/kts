@@ -206,6 +206,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="daemon\daemon.cpp" />
+    <ClCompile Include="shared\inifile\inifile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="shared\KConsole.hxx" />

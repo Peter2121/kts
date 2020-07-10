@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "..\shared\KTrace.hxx"
 #include "..\shared\Kini.hxx"
+#include "..\shared\kts.h"
 
 class KKey
 {
@@ -57,6 +58,8 @@ public:
 		ktrace( "KKey::Load( " << file << " )" );
 
 		KIni ini;
+		char* buffer = NULL;
+		std::istringstream* is = NULL;
 
 		// get key send delay params from ini file
 		ini.File(this->iniFileName);
@@ -67,8 +70,36 @@ public:
 		ini.GetKey( "KKey", "send_same_key_delay", this->send_same_key_delay );
 
 
-		// get key values from the specific key file
-		ini.File( file );
+		if (!file.empty())
+		{
+			// get key values from the specific key file
+			ini.File(file);
+		}
+		else
+		{
+			// get default key  values from resource
+			HMODULE handle = GetModuleHandle(NULL);
+			HRSRC rc = FindResource(handle, MAKEINTRESOURCE(IDR_KEYFILE), MAKEINTRESOURCE(INIFILE));
+			if (rc == NULL)
+			{
+				klog("Cannot find IDR_KEYFILE resource");
+				return;
+			}
+			HGLOBAL rcData = LoadResource(handle, rc);
+			if (rcData == NULL)
+			{
+				klog("Cannot load IDR_KEYFILE resource");
+				return;
+			}
+			DWORD size = SizeofResource(handle, rc);
+			const char* data = static_cast<const char*>(LockResource(rcData));
+			buffer = new char[size + 1];
+			memcpy(buffer, data, size);
+			UnlockResource(rcData);
+			buffer[size] = 0;
+			is = new std::istringstream(buffer);
+			ini.InputStream(is);
+		}
 
 		for( unsigned i = 0; i < 1024; i++ )
 		{
@@ -86,6 +117,11 @@ public:
 		}
 		
 		this->SortKeys( );
+
+		if (buffer != NULL) 
+			delete buffer;
+		if (is != NULL)
+			delete is;
 	}
 
 private:

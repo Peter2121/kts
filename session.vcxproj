@@ -220,6 +220,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="session\session.cpp" />
+    <ClCompile Include="shared\inifile\inifile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="session\KAutoLogon.hxx" />

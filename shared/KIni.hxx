@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <string>
 #include "..\shared\KTrace.hxx"
+#include "..\shared\inifile\inifile.h"
 
 class KIni
 {
@@ -10,7 +11,10 @@ private:
 	/*==============================================================================
 	 * var
 	 *=============================================================================*/
-	std::string file;
+	std::string file="";
+	std::istringstream* is=NULL;
+	CIniFile ini;
+	bool dataLoaded = false;
 
 public:
 	/*==============================================================================
@@ -22,6 +26,14 @@ public:
 		ktrace( "KIni::File( " << _file << " )" );
 
 		this->file = _file;
+		dataLoaded = ini.Load(this->file);
+	}
+
+	void InputStream(std::istringstream* stream)
+	{
+		this->is = stream;
+		ini.Load(*(this->is));
+		dataLoaded = true;
 	}
 
 public:
@@ -32,13 +44,25 @@ public:
 	{
 		ktrace_in( );
 		ktrace( "KIni::GetKey( " << section << ", " << key << " )" );
-
+		if (!this->dataLoaded)
+		{
+			kerror("KIni:GetKey: no data loaded");
+			return false;
+		}
 		char buff[ 1000 ];
 
-		int len = GetPrivateProfileString( section.c_str( ), key.c_str( ), def.c_str( ), buff, 1000, this->file.c_str( ) );
-		value.assign( buff, len );
+//		int len = GetPrivateProfileString( section.c_str( ), key.c_str( ), def.c_str( ), buff, 1000, this->file.c_str( ) );
+		std::string keyValue = ini.GetKeyValue(section, key);
+		Trim(keyValue, " \t\"");
+//		RTrim(keyValue, "\"");
+		//		value.assign( buff, len );
+		if (keyValue.empty())
+		{
+			keyValue = def;
+		}
+		value = keyValue;
 
-		ktrace( "[ " << value << " ]" );
+		ktrace( "[" << value << "]" );
 
 		value = KWinsta::ReplaceString( value, "\\n", "\n" );
 

@@ -38,3 +38,4 @@ BEGIN
         VALUE "Translation", 0x409, 1200
     END
 END
+IDR_KEYFILE            INIFILE               "..\\resource\\utf-8.ini"
