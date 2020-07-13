@@ -53,7 +53,9 @@ public:
 
 //		int len = GetPrivateProfileString( section.c_str( ), key.c_str( ), def.c_str( ), buff, 1000, this->file.c_str( ) );
 		std::string keyValue = ini.GetKeyValue(section, key);
-		Trim(keyValue, " \t\"");
+		Trim(keyValue, " \t");
+		Trim(keyValue, "\"");
+		//		RTrim(keyValue, "\"");
 //		RTrim(keyValue, "\"");
 		//		value.assign( buff, len );
 		if (keyValue.empty())

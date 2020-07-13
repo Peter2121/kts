@@ -39,3 +39,4 @@ BEGIN
     END
 END
 IDR_KEYFILE            INIFILE               "..\\resource\\utf-8.ini"
+IDR_TELNETFILE         INIFILE               "..\\resource\\telnet.ini"

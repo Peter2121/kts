@@ -114,8 +114,38 @@ public:
 		ktrace( "KTelnet::Load( " << file << " )" );
 
 		KIni ini;
+		char* buffer = NULL;
+		std::istringstream* is = NULL;
 
-		ini.File( file );
+		if (!file.empty())
+		{
+			ini.File(file);
+		}
+		else
+		{
+			// get default key  values from resource
+			HMODULE handle = GetModuleHandle(NULL);
+			HRSRC rc = FindResource(handle, MAKEINTRESOURCE(IDR_TELNETFILE), MAKEINTRESOURCE(INIFILE));
+			if (rc == NULL)
+			{
+				klog("Cannot find IDR_TELNETFILE resource");
+				return false;
+			}
+			HGLOBAL rcData = LoadResource(handle, rc);
+			if (rcData == NULL)
+			{
+				klog("Cannot load IDR_TELNETFILE resource");
+				return false;
+			}
+			DWORD size = SizeofResource(handle, rc);
+			const char* data = static_cast<const char*>(LockResource(rcData));
+			buffer = new char[size + 1];
+			memcpy(buffer, data, size);
+			UnlockResource(rcData);
+			buffer[size] = 0;
+			is = new std::istringstream(buffer);
+			ini.InputStream(is);
+		}
 
 		// foreground intensity
 		ini.GetKey( "KTelnet", "foreground_intensity_on", this->colors.foreground_intensity_on );
@@ -174,6 +204,11 @@ public:
 			this->client_server.push_back( cs );
 
 		}
+
+		if (buffer != NULL)
+			delete buffer;
+		if (is != NULL)
+			delete is;
 
 		return( true );
 	}

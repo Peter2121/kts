@@ -17,3 +17,4 @@
 // resources
 #define INIFILE				256
 #define IDR_KEYFILE                     101
+#define IDR_TELNETFILE                  102
