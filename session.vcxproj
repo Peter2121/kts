@@ -102,7 +102,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\cl32.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x86\cl32d.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -136,7 +136,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;..\cryptlib342\binaries64_vs10\cl64d.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x64\cl64d.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -167,9 +167,10 @@
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>
       </DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\cl32.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x86\cl32.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -201,9 +202,10 @@
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>
       </DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\cl32.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>userenv.lib;ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x64\cl64.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>

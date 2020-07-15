@@ -93,9 +93,10 @@
       <WarningLevel>Level4</WarningLevel>
       <ErrorReporting>None</ErrorReporting>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\cl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x86\cl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>
       </LinkTimeCodeGeneration>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -124,9 +125,10 @@
       <WarningLevel>Level4</WarningLevel>
       <ErrorReporting>None</ErrorReporting>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\cl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x64\cl64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>
       </LinkTimeCodeGeneration>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -158,7 +160,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\cl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x86\cl32d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>
       </LinkTimeCodeGeneration>
@@ -190,7 +192,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;..\cryptlib342\binaries64_vs10\cl64d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;advapi32.lib;shell32.lib;user32.lib;.\shared\cl\x64\cl64d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>
       </LinkTimeCodeGeneration>
