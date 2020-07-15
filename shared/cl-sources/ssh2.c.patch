@@ -1,0 +1,290 @@
+--- ssh2.c.orig	2011-04-18 16:19:46.000000000 +0200
++++ ssh2.c	2020-07-07 17:35:00.624842000 +0200
+@@ -21,7 +21,9 @@
+ 
+ /* Tables mapping SSHv2 algorithm names to cryptlib algorithm IDs, in
+    preferred algorithm order */
+-
++#ifdef KPYM_HACK
++extern ALGO_STRING_INFO FAR_BSS algoStringKeyexTbl[];
++#else
+ static const ALGO_STRING_INFO FAR_BSS algoStringKeyexTbl[] = {
+ #ifdef PREFER_ECC_SUITES
+ 	{ "ecdh-sha2-nistp256", 18, CRYPT_ALGO_ECDH,
+@@ -38,7 +40,7 @@
+ #endif /* !PREFER_ECC_SUITES */
+ 	{ NULL, 0, CRYPT_ALGO_NONE }, { NULL, 0, CRYPT_ALGO_NONE }
+ 	};
+-
++#endif
+ static const ALGO_STRING_INFO FAR_BSS algoStringCoprTbl[] = {
+ 	{ "none", 4, CRYPT_PSEUDOALGO_COPR },
+ 	{ NULL, 0, CRYPT_ALGO_NONE }, { NULL, 0, CRYPT_ALGO_NONE }
+@@ -57,21 +59,28 @@
+ #endif /* !PREFER_ECC_SUITES */
+ 	{ NULL, 0, CRYPT_ALGO_NONE }, { NULL, 0, CRYPT_ALGO_NONE }
+ 	};
+-
++#ifdef KPYM_HACK
++#define algoStringEncrTblClient algoStringEncrTbl
++#define algoStringEncrTblServer algoStringEncrTbl
++extern ALGO_STRING_INFO FAR_BSS algoStringEncrTbl[];
++#else
+ static const ALGO_STRING_INFO FAR_BSS algoStringEncrTbl[] = {
+ 	{ "3des-cbc", 8, CRYPT_ALGO_3DES },
+ 	{ "aes128-cbc", 10, CRYPT_ALGO_AES },
+ 	{ "blowfish-cbc", 12, CRYPT_ALGO_BLOWFISH },
+ 	{ NULL, 0, CRYPT_ALGO_NONE }, { NULL, 0, CRYPT_ALGO_NONE }
+ 	};
+-
++#endif
++#ifdef KPYM_HACK
++extern ALGO_STRING_INFO FAR_BSS algoStringMACTbl[];
++#else
+ static const ALGO_STRING_INFO FAR_BSS algoStringMACTbl[] = {
+ 	{ "hmac-sha2-256", 13, CRYPT_ALGO_HMAC_SHA2 },
+ 	{ "hmac-sha1", 9, CRYPT_ALGO_HMAC_SHA1 },
+ 	{ "hmac-md5", 8, CRYPT_ALGO_HMAC_MD5 },
+ 	{ NULL, 0, CRYPT_ALGO_NONE }, { NULL, 0, CRYPT_ALGO_NONE }
+ 	};
+-
++#endif
+ /* A grand unified version of the above */
+ 
+ static const ALGO_STRING_INFO FAR_BSS algoStringMapTbl[] = {
+@@ -283,6 +292,10 @@
+ 				matchedAlgoInfo = &algoIDInfo->algoInfo[ currentAlgoIndex ];
+ 				break;
+ 				}
++#ifdef KPYM_HACK
++			// choose none
++//			matchedAlgoInfo = &algoIDInfo->algoInfo[ algoIDInfo->noAlgoInfoEntries - 1 ];
++#endif			
+ 			}
+ 		ENSURES( currentAlgoIndex < FAILSAFE_ITERATIONS_MED );
+ 		ENSURES( currentAlgoIndex < algoIDInfo->noAlgoInfoEntries );
+@@ -522,6 +535,140 @@
+ *																			*
+ ****************************************************************************/
+ 
++#ifdef KPYM_HACK
++int algoSize(const ALGO_STRING_INFO FAR_BSS t[])
++{
++	int i = 0;
++	while(1)
++	{
++		if( t[i].name == NULL ) return i + 2;
++		i++;
++	}
++	return 0;
++}
++
++int typeSize(const CRYPT_ALGO_TYPE t[])
++{
++	int i = 0;
++	while(1)
++	{
++		if( t[i] == CRYPT_ALGO_NONE ) return i + 2;
++		i++;
++	}
++	return 0;
++}
++
++int processClientKexinit( SESSION_INFO *sessionInfoPtr, SSH_HANDSHAKE_INFO *handshakeInfo, STREAM stream )
++	{
++	CRYPT_ALGO_TYPE dummyAlgo;
++	ALGOID_INFO algoIDInfo;
++	BOOLEAN preferredAlgoMismatch = FALSE, guessedKeyex = FALSE;
++	int status;
++
++	/* Process the client/server hello:
++
++		byte		type = SSH2_MSG_KEXINIT
++		byte[16]	cookie
++		string		keyex algorithms
++		string		pubkey algorithms
++		string		client_crypto algorithms
++		string		server_crypto algorithms
++		string		client_mac algorithms
++		string		server_mac algorithms
++		string		client_compression algorithms
++		string		server_compression algorithms
++		string		client_language
++		string		server_language
++		boolean		first_keyex_packet_follows
++		uint32		reserved
++
++	   The cookie isn't explicitly processed as with SSHv1 since SSHv2
++	   hashes the entire hello message */
++/*	length = readPacketSSH2( sessionInfoPtr, SSH2_MSG_KEXINIT, 128 );
++	if( cryptStatusError( length ) )
++		return( length );
++	*keyexLength = length;
++	sMemConnect( &stream, sessionInfoPtr->receiveBuffer, length );
++*/
++	sSkip( &stream, SSH2_COOKIE_SIZE );
++
++	/* Read the keyex algorithm info */
++	setAlgoIDInfo( &algoIDInfo, algoStringKeyexTbl, algoSize( algoStringKeyexTbl ), CRYPT_PSEUDOALGO_DHE, GETALGO_FIRST_MATCH_WARN );
++
++	status = readAlgoStringEx( &stream, &algoIDInfo, SESSION_ERRINFO );
++	if( cryptStatusError( status ) ) return( status );
++
++	if( algoIDInfo.prefAlgoMismatch )
++		/* We didn't get a match for our first choice, remember that we have
++		   to discard any guessed keyex that may follow */
++		preferredAlgoMismatch = TRUE;
++	if( algoIDInfo.algo == CRYPT_PSEUDOALGO_DHE )
++		/* If we're using ephemeral rather than static DH keys, we need to
++		   negotiate the keyex key before we can perform the exchange */
++		handshakeInfo->requestedServerKeySize = SSH2_DEFAULT_KEYSIZE;
++
++
++	setAlgoIDInfo( &algoIDInfo, handshakeInfo->algoStringPubkeyTbl, 
++						handshakeInfo->algoStringPubkeyTblNoEntries,
++					   handshakeInfo->pubkeyAlgo, GETALGO_FIRST_MATCH_WARN );
++
++	status = readAlgoStringEx( &stream, &algoIDInfo, SESSION_ERRINFO );
++	if( cryptStatusError( status ) )
++		{
++		return( status );
++		}
++
++	if( algoIDInfo.prefAlgoMismatch )
++		/* We didn't get a match for our first choice, remember that we have
++		   to discard any guessed keyex that may follow */
++		preferredAlgoMismatch = TRUE;
++
++	/* Read the encryption and MAC algorithm info */
++	status = readAlgoStringPair( &stream, algoStringEncrTblServer, algoSize(algoStringEncrTblServer),
++						&sessionInfoPtr->cryptAlgo, TRUE,
++						FALSE,
++						SESSION_ERRINFO );
++
++	if( cryptStatusOK( status ) )
++		status = readAlgoStringPair( &stream, algoStringMACTbl, algoSize( algoStringMACTbl ),
++									 &sessionInfoPtr->integrityAlgo,									
++									TRUE, FALSE, SESSION_ERRINFO );
++	if( cryptStatusError( status ) )
++		{
++		return( status );
++		}
++
++	/* Read the remaining algorithm info.  The final reserved value should
++	   always be zero, but we don't specifically check for this since at
++	   some point in the future it may become non-zero */
++	status = readAlgoStringPair( &stream, algoStringCoprTbl, algoSize(algoStringCoprTbl), &dummyAlgo,
++								 TRUE, 
++								(sessionInfoPtr->protocolFlags & SSH_PFLAG_ASYMMCOPR) ? TRUE : FALSE,
++								SESSION_ERRINFO );
++	if( cryptStatusOK( status ) )
++		status = readUniversal32( &stream );
++	if( cryptStatusOK( status ) )
++		status = readUniversal32( &stream );
++	if( cryptStatusOK( status ) )
++		{
++		if( sgetc( &stream ) )
++			guessedKeyex = TRUE;
++		status = readUint32( &stream );	/* Reserved value */
++		}
++	if( cryptStatusError( status ) )
++		retExt( SESSION_ERRINFO, ( status, SESSION_ERRINFO, 
++				  "Invalid hello packet compression algorithm/language "
++				  "string/trailer" ) );
++
++	/* If there's a guessed keyex following this packet and we didn't match
++	   the first-choice keyex/pubkey algorithm, tell the caller to skip it */
++	if( guessedKeyex && preferredAlgoMismatch )
++		return( OK_SPECIAL );
++
++	return( CRYPT_OK );
++	}
++#endif
++
+ /* Process a client/server hello packet */
+ 
+ CHECK_RETVAL STDC_NONNULL_ARG( ( 1, 2, 3 ) ) \
+@@ -574,11 +721,16 @@
+ 	if( isServer )
+ 		{
+ 		int pkcAlgo;
+-
++#ifdef KPYM_HACK
++		setAlgoIDInfo( &algoIDInfo, algoStringKeyexTbl, 
++					   algoSize( algoStringKeyexTbl ),
++					   CRYPT_PSEUDOALGO_DHE, GETALGO_FIRST_MATCH_WARN );
++#else
+ 		setAlgoIDInfo( &algoIDInfo, algoStringKeyexTbl, 
+ 					   FAILSAFE_ARRAYSIZE( algoStringKeyexTbl, \
+ 										   ALGO_STRING_INFO ),
+ 					   CRYPT_PSEUDOALGO_DHE, GETALGO_FIRST_MATCH_WARN );
++#endif
+ 
+ 		/* By default the use of ECC algorithms is enabled is support for
+ 		   them is present, however if the server key is a non-ECC key then 
+@@ -593,10 +745,16 @@
+ 		}
+ 	else
+ 		{
++#ifdef KPYM_HACK
++		setAlgoIDInfo( &algoIDInfo, algoStringKeyexTbl, 
++					   algoSize( algoStringKeyexTbl ),
++					   CRYPT_ALGO_NONE, GETALGO_BEST_MATCH );
++#else
+ 		setAlgoIDInfo( &algoIDInfo, algoStringKeyexTbl, 
+ 					   FAILSAFE_ARRAYSIZE( algoStringKeyexTbl, \
+ 										   ALGO_STRING_INFO ),
+ 					   CRYPT_ALGO_NONE, GETALGO_BEST_MATCH );
++#endif
+ 		}
+ 	status = readAlgoStringEx( &stream, &algoIDInfo, SESSION_ERRINFO );
+ 	if( cryptStatusError( status ) )
+@@ -663,15 +821,23 @@
+ 
+ 	/* Read the encryption and MAC algorithm information */
+ 	status = readAlgoStringPair( &stream, algoStringEncrTbl,
++#ifdef KPYM_HACK
++					   algoSize( algoStringEncrTbl ),
++#else
+ 							FAILSAFE_ARRAYSIZE( algoStringEncrTbl, \
+ 												ALGO_STRING_INFO ),
++#endif
+ 							&sessionInfoPtr->cryptAlgo, isServer, FALSE, 
+ 							SESSION_ERRINFO );
+ 	if( cryptStatusOK( status ) )
+ 		{
+ 		status = readAlgoStringPair( &stream, algoStringMACTbl,
++#ifdef KPYM_HACK
++					   algoSize( algoStringMACTbl ),
++#else
+ 									 FAILSAFE_ARRAYSIZE( algoStringMACTbl, \
+ 														 ALGO_STRING_INFO ),
++#endif
+ 									 &sessionInfoPtr->integrityAlgo,
+ 									 isServer, FALSE, SESSION_ERRINFO );
+ 		}
+@@ -990,6 +1156,24 @@
+ 				  sshInfo->packetType, payloadLength ));
+ 	DEBUG_DUMP_DATA( sessionInfoPtr->receiveBuffer + \
+ 					 sessionInfoPtr->receiveBufPos, payloadLength );
++#ifdef KPYM_HACK
++	if( sshInfo->packetType == SSH_MSG_NEWKEYS )
++	{
++		STREAM stream;
++		status = processChannelControlMessage( sessionInfoPtr, &stream );
++
++		sessionInfoPtr->receiveBufEnd = sessionInfoPtr->receiveBufPos;
++		sessionInfoPtr->pendingPacketLength = 0;
++		if( cryptStatusError( status ) )
++		{
++			if( status == OK_SPECIAL || status == CRYPT_ENVELOPE_RESOURCE )
++				*readInfo = READINFO_NOOP;
++
++			return status;
++		}
++	}
++	else
++#endif
+ 
+ 	/* If it's not plain data (which was handled at the readHeaderFunction()
+ 	   stage), handle it as a control message */

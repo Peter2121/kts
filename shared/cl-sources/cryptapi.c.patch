@@ -1,0 +1,83 @@
+--- cryptapi.c.orig	2012-08-23 21:07:38.000000000 +0200
++++ cryptapi.c	2020-07-06 12:00:29.000000000 +0200
+@@ -2419,6 +2419,26 @@
+ 	COMMAND_INFO cmd;
+ 	int status;
+ 
++#ifdef KPYM_HACK
++	extern int ssh_terminal_width;
++	extern int ssh_terminal_height;
++
++#define CRYPT_KPYMINFO_SSH_TERMINAL_WIDTH	60001
++#define CRYPT_KPYMINFO_SSH_TERMINAL_HEIGHT	60002
++
++	if( attributeType == CRYPT_KPYMINFO_SSH_TERMINAL_WIDTH )
++	{
++		*value = ssh_terminal_width;
++		return( CRYPT_OK );
++	}
++
++	if( attributeType == CRYPT_KPYMINFO_SSH_TERMINAL_HEIGHT )
++	{
++		*value = ssh_terminal_height;
++		return( CRYPT_OK );
++	}
++#endif
++
+ 	/* Perform basic client-side error checking */
+ 	if( !isHandleRangeValid( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
+ 		return( CRYPT_ERROR_PARAM1 );
+@@ -2456,6 +2476,34 @@
+ 	COMMAND_INFO cmd;
+ 	int status;
+ 
++#ifdef KPYM_HACK
++	{
++		extern char ke_client_id[1000];
++		extern char ke_publickey[ 5000 + 2 ];
++		extern int ke_publickey_len;
++
++#define CRYPT_KPYMINFO_CLIENT_ID			60003
++#define CRYPT_KPYMINFO_PUBLICKEY			60004
++
++		if( attributeType == CRYPT_KPYMINFO_CLIENT_ID )
++		{
++			strcpy_s(value, 990, ke_client_id);
++			*valueLength = strlen(ke_client_id);
++
++			return( CRYPT_OK );
++		}
++
++		if( attributeType == CRYPT_KPYMINFO_PUBLICKEY )
++		{
++			strcpy_s(value, 990, ke_publickey);
++			*valueLength = ke_publickey_len;
++
++			return( CRYPT_OK );
++		}
++
++	}
++#endif
++
+ 	/* Perform basic client-side error checking */
+ 	if( !isHandleRangeValid( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
+ 		return( CRYPT_ERROR_PARAM1 );
+@@ -2500,6 +2548,18 @@
+   #endif /* UNICODE_CHARS */
+ 			}
+ #endif /* EBCDIC_CHARS || UNICODE_CHARS */
++#ifdef KPYM_HACK
++		if( attributeType == CRYPT_SESSINFO_PASSWORD )
++		{
++			if(strlen(KE_EMPTY_PASSWORD) == *valueLength)
++			{
++				if(strncmp(KE_EMPTY_PASSWORD, value, *valueLength)==0)
++				{
++					*valueLength = 0;
++				}
++			}
++		}
++#endif
+ 		return( CRYPT_OK );
+ 		}
+ 	return( mapError( errorMap, FAILSAFE_ARRAYSIZE( errorMap, ERRORMAP ), 

@@ -1,0 +1,14 @@
+--- ssh2_chn.c.orig	2012-09-10 22:49:38.000000000 +0200
++++ ssh2_chn.c	2020-07-06 16:59:57.000000000 +0200
+@@ -74,7 +74,11 @@
+ /* The maximum allowed number of channels */
+ 
+ #ifdef USE_SSH_EXTENDED
++# ifdef KPYM_HACK
++  #define SSH_MAX_CHANNELS		10
++# else
+   #define SSH_MAX_CHANNELS		4
++# endif
+ #else
+   #define SSH_MAX_CHANNELS		1
+ #endif /* USE_SSH_EXTENDED */

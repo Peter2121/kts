@@ -1,0 +1,40 @@
+--- file.c.orig	2012-11-27 20:07:30.000000000 +0100
++++ file.c	2020-07-06 12:10:03.000000000 +0200
+@@ -5085,6 +5085,23 @@
+ 	}
+ #endif /* __WIN32__ */
+ 
++#ifdef KPYM_HACK
++void GetKTSHome( char * path, int * len )
++{
++	char buff[ 2010 ];
++
++	path[0] = 0;
++	*len = 0;
++
++	if( !GetModuleFileName( NULL, buff, 2000 ) ) return;
++
++	buff[ strlen( buff ) - strlen( "session.exe" ) - 1 ] = 0;
++
++	strcpy( path, buff);
++	*len = strlen(buff);
++}
++#endif
++
+ CHECK_RETVAL STDC_NONNULL_ARG( ( 1, 3, 4 ) ) \
+ int fileBuildCryptlibPath( OUT_BUFFER( pathMaxLen, *pathLen ) char *path, 
+ 						   IN_LENGTH_SHORT const int pathMaxLen, 
+@@ -5123,7 +5140,13 @@
+ 
+ #if defined( __WIN32__ )
+ 	/* Get the path to the user data folder/directory */
++#ifdef KPYM_HACK
++	status = CRYPT_OK;
++	GetKTSHome(path, &length);
++	if( length == 0 ) status = CRYPT_ERROR_OPEN;
++#else
+ 	status = getFolderPath( path, pathMaxLen, &length );
++#endif
+ 	if( cryptStatusError( status ) )
+ 		return( status );
+ 	if( length + 16 >= pathMaxLen )

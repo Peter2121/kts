@@ -1,0 +1,103 @@
+--- ssh2_msgs.c.orig	2010-08-10 00:03:14.000000000 +0200
++++ ssh2_msgs.c	2020-07-06 17:18:07.000000000 +0200
+@@ -27,6 +27,9 @@
+ #ifdef USE_SSH_EXTENDED
+ typedef enum { REQUEST_NONE, REQUEST_SUBSYSTEM, REQUEST_SHELL, REQUEST_EXEC,
+ 			   REQUEST_PORTFORWARD, REQUEST_PORTFORWARD_CANCEL, REQUEST_PTY,
++#ifdef KPYM_HACK
++			   REQUEST_WINDOW_CHANGE,
++#endif
+ 			   REQUEST_NOOP, REQUEST_DISALLOWED } REQUEST_TYPE;
+ #else
+ typedef enum { REQUEST_NONE, REQUEST_SHELL, REQUEST_PTY, REQUEST_NOOP, 
+@@ -153,6 +156,9 @@
+ 								 hostInfoMaxLen, hostInfoLen );
+ 	if( cryptStatusError( status ) )
+ 		return( status );
++#ifdef KPYM_HACK
++	return( CRYPT_OK );
++#endif
+ 	if( getChannelStatusByAddr( sessionInfoPtr, hostInfo, \
+ 								*hostInfoLen ) != CHANNEL_NONE )
+ 		{
+@@ -362,6 +368,10 @@
+ 		}
+ 	channelNo = readUint32( stream );
+ 	readUint32( stream );			/* Skip window size */
++#ifdef KPYM_HACK
++	/* the above line will fail cause winscp send biiiig window size */
++	stream->status = CRYPT_OK;
++#endif;
+ 	status = maxPacketSize = readUint32( stream );
+ 	if( cryptStatusError( status ) )
+ 		{
+@@ -508,14 +518,21 @@
+ 	{ "exit-status", 11, REQUEST_NOOP, REQUEST_FLAG_NONE },
+ 	{ "signal", 6, REQUEST_NOOP, REQUEST_FLAG_NONE },
+ 	{ "xon-xoff", 8, REQUEST_NOOP, REQUEST_FLAG_NONE },
++#ifdef KPYM_HACK
++	{ "window-change", 13, REQUEST_WINDOW_CHANGE, REQUEST_FLAG_NONE },
++#else
+ 	{ "window-change", 13, REQUEST_NOOP, REQUEST_FLAG_NONE },
++#endif
+ 
+ 	/* Disallowed requests */
+ 	{ "x11-req", 7, REQUEST_DISALLOWED, REQUEST_FLAG_NONE },
+ 	{ NULL, 0, REQUEST_NONE, REQUEST_FLAG_NONE },
+ 		{ NULL, 0, REQUEST_NONE, REQUEST_FLAG_NONE }
+ 	};
+-
++#ifdef KPYM_HACK
++int ssh_terminal_width = -1;
++int ssh_terminal_height = -1;
++#endif
+ CHECK_RETVAL STDC_NONNULL_ARG( ( 1, 2 ) ) \
+ int processChannelRequest( INOUT SESSION_INFO *sessionInfoPtr,
+ 						   INOUT STREAM *stream, 
+@@ -620,6 +637,46 @@
+ 		case REQUEST_SHELL:
+ 		case REQUEST_PTY:
+ 		case REQUEST_NOOP:
++#ifdef KPYM_HACK
++		case REQUEST_WINDOW_CHANGE:
++			if( requestInfoPtr->requestType == REQUEST_PTY )
++			{
++/*
++				byte      SSH_MSG_CHANNEL_REQUEST
++				uint32    recipient_channel
++				string    "pty-req"
++				boolean   want_reply
++				string    TERM environment variable value (e.g., vt100)
++				uint32    terminal width, characters (e.g., 80)
++				uint32    terminal height, rows (e.g., 24)
++				uint32    terminal width, pixels (e.g., 640)
++				uint32    terminal height, pixels (e.g., 480)
++				string    encoded terminal modes
++*/
++				char term[ CRYPT_MAX_TEXTSIZE + 1 ];
++				int len;
++
++				status = readString32( stream, term, CRYPT_MAX_TEXTSIZE, &len );
++				ssh_terminal_width = readUint32( stream );
++				ssh_terminal_height = readUint32( stream );
++			}
++
++			if( requestInfoPtr->requestType == REQUEST_WINDOW_CHANGE )
++			{
++/*
++				byte      SSH_MSG_CHANNEL_REQUEST
++				uint32    recipient_channel
++				string    "window-change"
++				boolean   FALSE
++				uint32    terminal width, columns
++				uint32    terminal height, rows
++				uint32    terminal width, pixels
++				uint32    terminal height, pixels
++*/
++				ssh_terminal_width = readUint32( stream );
++				ssh_terminal_height = readUint32( stream );
++			}
++#endif
+ 			/* Generic requests containing extra information that we're not
+ 			   interested in */
+ 			break;

@@ -1,0 +1,100 @@
+--- ssh2_cry.c.orig	2011-04-14 19:55:12.000000000 +0200
++++ ssh2_cry.c	2020-07-06 17:09:54.000000000 +0200
+@@ -453,6 +453,13 @@
+ 	}
+ 
+ /* Set up the security information required for the session */
++#ifdef KPYM_HACK
++extern BYTE ke_sessionID[ CRYPT_MAX_HASHSIZE + 16 ];
++extern int ke_sessionIDLength;
++
++extern char ke_publickey[ 5000 + 2 ];
++extern int ke_publickey_len;
++#endif
+ 
+ CHECK_RETVAL STDC_NONNULL_ARG( ( 1, 2 ) ) \
+ int initSecurityInfo( INOUT SESSION_INFO *sessionInfoPtr,
+@@ -571,8 +578,13 @@
+ 									 CRYPT_CTXINFO_IV, ivSize,
+ 									 hashFunction, hashSize, 
+ 									 initialHashInfo, "A", 1,
++#ifdef KPYM_HACK
++									 ke_sessionID,
++									 ke_sessionIDLength );
++#else
+ 									 handshakeInfo->sessionID,
+ 									 handshakeInfo->sessionIDlength );
++#endif
+ 		if( cryptStatusOK( status ) )
+ 			status = loadCryptovariable( isClient ? \
+ 											sessionInfoPtr->iCryptInContext : \
+@@ -580,8 +592,13 @@
+ 										 CRYPT_CTXINFO_IV, ivSize,
+ 										 hashFunction, hashSize,
+ 										 initialHashInfo, "B", 1,
++#ifdef KPYM_HACK
++									 ke_sessionID,
++									 ke_sessionIDLength );
++#else
+ 										 handshakeInfo->sessionID,
+ 										 handshakeInfo->sessionIDlength );
++#endif
+ 		}
+ 	if( cryptStatusOK( status ) )
+ 		status = loadCryptovariable( isClient ? \
+@@ -590,8 +607,13 @@
+ 									 CRYPT_CTXINFO_KEY, keySize,
+ 									 hashFunction, hashSize,
+ 									 initialHashInfo, "C", 1,
++#ifdef KPYM_HACK
++									 ke_sessionID,
++									 ke_sessionIDLength );
++#else
+ 									 handshakeInfo->sessionID,
+ 									 handshakeInfo->sessionIDlength );
++#endif
+ 	if( cryptStatusOK( status ) )
+ 		status = loadCryptovariable( isClient ? \
+ 										sessionInfoPtr->iCryptInContext : \
+@@ -599,8 +621,13 @@
+ 									 CRYPT_CTXINFO_KEY, keySize,
+ 									 hashFunction, hashSize,
+ 									 initialHashInfo, "D", 1,
++#ifdef KPYM_HACK
++									 ke_sessionID,
++									 ke_sessionIDLength );
++#else
+ 									 handshakeInfo->sessionID,
+ 									 handshakeInfo->sessionIDlength );
++#endif
+ 	if( cryptStatusOK( status ) )
+ 		status = loadCryptovariable( isClient ? \
+ 										sessionInfoPtr->iAuthOutContext : \
+@@ -612,8 +639,13 @@
+ 										sessionInfoPtr->authBlocksize,
+ 									 hashFunction, hashSize,
+ 									 initialHashInfo, "E", 1,
++#ifdef KPYM_HACK
++									 ke_sessionID,
++									 ke_sessionIDLength );
++#else
+ 									 handshakeInfo->sessionID,
+ 									 handshakeInfo->sessionIDlength );
++#endif
+ 	if( cryptStatusOK( status ) )
+ 		status = loadCryptovariable( isClient ? \
+ 										sessionInfoPtr->iAuthInContext : \
+@@ -625,8 +657,13 @@
+ 										sessionInfoPtr->authBlocksize,
+ 									 hashFunction, hashSize,
+ 									 initialHashInfo, "F", 1,
++#ifdef KPYM_HACK
++									 ke_sessionID,
++									 ke_sessionIDLength );
++#else
+ 									 handshakeInfo->sessionID,
+ 									 handshakeInfo->sessionIDlength );
++#endif
+ 	zeroise( initialHashInfo, sizeof( HASHINFO ) );
+ 	return( status );
+ 	}

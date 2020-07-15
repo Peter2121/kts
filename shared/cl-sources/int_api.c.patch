@@ -1,0 +1,33 @@
+--- int_api.c.orig	2011-08-24 18:24:32.000000000 +0200
++++ int_api.c	2020-07-07 17:35:11.524257000 +0200
+@@ -92,18 +92,28 @@
+ 	assert( ( dest == NULL && destMaxLength == 0 ) || \
+ 			( isWritePtr( dest, destMaxLength ) ) );
+ 	assert( isWritePtr( destLength, sizeof( int ) ) );
++#ifdef KPYM_HACK
++	assert( ( source == NULL || sourceLength == 0 ) || \
++			isReadPtr( source, sourceLength ) );
++#else
+ 	assert( ( source == NULL && sourceLength == 0 ) || \
+ 			isReadPtr( source, sourceLength ) );
+-
++#endif
+ 	REQUIRES( ( dest == NULL && destMaxLength == 0 ) || \
+ 			  ( dest != NULL && \
+ 				destMaxLength > 0 && \
+ 				destMaxLength < MAX_INTLENGTH_SHORT ) );
++#ifdef KPYM_HACK
++	REQUIRES( ( source == NULL || sourceLength == 0 ) || \
++			  ( source != NULL && \
++			    sourceLength > 0 && \
++				sourceLength < MAX_INTLENGTH_SHORT ) );
++#else
+ 	REQUIRES( ( source == NULL && sourceLength == 0 ) || \
+ 			  ( source != NULL && \
+ 			    sourceLength > 0 && \
+ 				sourceLength < MAX_INTLENGTH_SHORT ) );
+-
++#endif
+ 	/* Clear return value */
+ 	*destLength = 0;
+ 

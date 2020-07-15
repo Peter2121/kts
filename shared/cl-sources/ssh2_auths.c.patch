@@ -1,0 +1,484 @@
+--- ssh2_auths.c.orig	2012-09-10 22:49:12.000000000 +0200
++++ ssh2_auths.c	2020-07-06 18:12:43.524051000 +0200
+@@ -188,6 +188,9 @@
+ 	METHOD_NONE,		/* No authentication method type */
+ 	METHOD_QUERY,		/* Query available authentication methods */
+ 	METHOD_PASSWORD,	/* Password authentication */
++#ifdef KPYM_HACK
++	METHOD_PUBLICKEY,	/* Publickey authentication */
++#endif
+ 	METHOD_LAST			/* Last possible authentication method type */
+ 	} METHOD_TYPE;
+ 
+@@ -201,6 +204,9 @@
+ static const METHOD_INFO methodInfoTbl[] = {
+ 	{ "none", 4, METHOD_QUERY },
+ 	{ "password", 8, METHOD_PASSWORD },
++#ifdef KPYM_HACK
++	{ "publickey", 9, METHOD_PUBLICKEY },
++#endif
+ 	{ NULL, 0, METHOD_NONE }, { NULL, 0, METHOD_NONE }
+ 	};
+ 
+@@ -252,7 +258,11 @@
+ 	if( cryptStatusError( status ) )
+ 		return( status );
+ 	if( allowFurtherAuth )
++#ifdef KPYM_HACK
++		writeString32( &stream, "publickey,password", 18 );
++#else
+ 		writeString32( &stream, "password", 8 );
++#endif
+ 	else
+ 		writeUint32( &stream, 0 );
+ 	status = sputc( &stream, 0 );
+@@ -328,15 +338,364 @@
+ 		sshInfo->authType = authMethod;
+ 		return( CRYPT_OK );
+ 		}
+-
++#ifdef KPYM_HACK
++	// we can have publickey -> password auth now
++#else
+ 	/* We've already seen a standard authentication method, the new method 
+ 	   must be the same */
+ 	if( sshInfo->authType != authMethod )
+ 		return( CRYPT_ERROR_INVALID );
+-
++#endif
+ 	return( CRYPT_OK );
+ 	}
+ 
++#ifdef KPYM_HACK
++#define MAX_BLOB_SIZE 5000
++extern BYTE ke_sessionID[ CRYPT_MAX_HASHSIZE + 16 ];
++extern int ke_sessionIDLength;
++
++extern char ke_publickey[ 5000 + 2 ];
++extern int ke_publickey_len;
++static int doPublickeyAuth(int step, STREAM stream, INOUT SESSION_INFO *sessionInfoPtr, int length
++						   ,OUT_ENUM( USERAUTH ) USERAUTH_TYPE *userAuthInfo)
++{
++	int status = 0;
++
++	if(step == 0 )
++	{
++/*
++  byte      SSH_MSG_USERAUTH_REQUEST
++  string    user name in ISO-10646 UTF-8 encoding [RFC3629]
++  string    service name in US-ASCII
++  string    "publickey"
++  boolean   FALSE
++  string    public key algorithm name
++  string    public key blob
++*/
++
++
++		BYTE public_key_algorithm_name[ CRYPT_MAX_TEXTSIZE + 8 ];
++		int public_key_algorithm_name_len = 0;
++		BYTE public_key_blob[ MAX_BLOB_SIZE + 8 ];
++		int public_key_blob_len = 0;
++
++		status = readString32( &stream, public_key_algorithm_name, CRYPT_MAX_TEXTSIZE,
++							   &public_key_algorithm_name_len );
++		if( cryptStatusError( status ) || \
++			public_key_algorithm_name_len <= 0 || public_key_algorithm_name_len > CRYPT_MAX_TEXTSIZE )
++			{
++			sMemDisconnect( &stream );
++			retExt( CRYPT_ERROR_BADDATA,
++					( CRYPT_ERROR_BADDATA, SESSION_ERRINFO, 
++					  "Invalid SSH_MSG_USERAUTH_REQUEST FALSE public_key_algorithm_name" ) );
++			}
++
++		status = readString32( &stream, public_key_blob, MAX_BLOB_SIZE,
++							   &public_key_blob_len );
++		if( cryptStatusError( status ) || \
++			public_key_blob_len <= 0 || public_key_blob_len > MAX_BLOB_SIZE )
++			{
++			sMemDisconnect( &stream );
++			retExt( CRYPT_ERROR_BADDATA,
++					( CRYPT_ERROR_BADDATA, SESSION_ERRINFO, 
++					  "Invalid SSH_MSG_USERAUTH_REQUEST FALSE public_key_blob" ) );
++			}
++		sMemDisconnect( &stream );
++
++/*
++The server MUST respond to this message with either
++SSH_MSG_USERAUTH_FAILURE or with the following:
++
++  byte      SSH_MSG_USERAUTH_PK_OK
++  string    public key algorithm name from the request
++  string    public key blob from the request
++*/
++
++		status = openPacketStreamSSH( &stream, sessionInfoPtr, 
++									  SSH_MSG_USERAUTH_PK_OK );
++		if( cryptStatusError( status ) )
++			return( status );
++		status = writeString32( &stream, public_key_algorithm_name, public_key_algorithm_name_len );
++		if( cryptStatusError( status ) )
++			return( status );
++
++//		status = swrite( &stream, public_key_blob, public_key_blob_len );
++		status = writeString32( &stream, public_key_blob, public_key_blob_len );
++		if( cryptStatusError( status ) )
++			return( status );
++
++		if( cryptStatusOK( status ) )
++			status = sendPacketSSH2( sessionInfoPtr, &stream, FALSE );
++		sMemDisconnect( &stream );
++
++		// inform the caller to try one more time
++		*userAuthInfo = USERAUTH_NOOP;
++		return( OK_SPECIAL );
++	}
++	else
++	{
++/*
++To perform actual authentication, the client MAY then send a
++signature generated using the private key.  The client MAY send the
++signature directly without first verifying whether the key is
++acceptable.  The signature is sent using the following packet:
++
++  byte      SSH_MSG_USERAUTH_REQUEST
++  string    user name
++  string    service name
++  string    "publickey"
++  boolean   TRUE
++  string    public key algorithm name
++  string    public key to be used for authentication
++  string    signature
++*/
++
++		BYTE public_key_algorithm_name[ CRYPT_MAX_TEXTSIZE + 8 ];
++		int public_key_algorithm_name_len = 0;
++		BYTE public_key[ MAX_BLOB_SIZE + 8 ];
++		int public_key_len = 0;
++		BYTE signature[ MAX_BLOB_SIZE + 8 ];
++		int signature_len = 0;
++
++		status = readString32( &stream, public_key_algorithm_name, CRYPT_MAX_TEXTSIZE,
++							   &public_key_algorithm_name_len );
++		if( cryptStatusError( status ) || \
++			public_key_algorithm_name_len <= 0 || public_key_algorithm_name_len > CRYPT_MAX_TEXTSIZE )
++			{
++			sMemDisconnect( &stream );
++			retExt( CRYPT_ERROR_BADDATA,
++					( CRYPT_ERROR_BADDATA, SESSION_ERRINFO, 
++					  "Invalid SSH_MSG_USERAUTH_REQUEST TRUE public_key_algorithm_name" ) );
++			}
++
++		status = readString32( &stream, public_key, MAX_BLOB_SIZE,
++							   &public_key_len );
++		if( cryptStatusError( status ) || \
++			public_key_len <= 0 || public_key_len > MAX_BLOB_SIZE )
++			{
++			sMemDisconnect( &stream );
++			retExt( CRYPT_ERROR_BADDATA,
++					( CRYPT_ERROR_BADDATA, SESSION_ERRINFO, 
++					  "Invalid SSH_MSG_USERAUTH_REQUEST TRUE public_key_len" ) );
++			}
++
++		status = readString32( &stream, signature, MAX_BLOB_SIZE,
++							   &signature_len );
++		if( cryptStatusError( status ) || \
++			signature_len <= 0 || signature_len > MAX_BLOB_SIZE )
++			{
++			sMemDisconnect( &stream );
++			retExt( CRYPT_ERROR_BADDATA,
++					( CRYPT_ERROR_BADDATA, SESSION_ERRINFO, 
++					  "Invalid SSH_MSG_USERAUTH_REQUEST TRUE signature_len" ) );
++			}
++		sMemDisconnect( &stream );
++
++/*
++The value of 'signature' is a signature by the corresponding private
++key over the following data, in the following order:
++
++  string    session identifier
++  byte      SSH_MSG_USERAUTH_REQUEST
++  string    user name
++  string    service name
++  string    "publickey"
++  boolean   TRUE
++  string    public key algorithm name
++  string    public key to be used for authentication
++
++When the server receives this message, it MUST check whether the
++supplied key is acceptable for authentication, and if so, it MUST
++check whether the signature is correct.
++
++---------------------
++use CRYPT_KEYTYPE_PUBLIC to read and load
++	string "ssh-dss" 
++	mpint p 
++	mpint q 
++	mpint g 
++	mpint y
++	-- or --
++	string    "ssh-rsa"
++	mpint     e
++	mpint     n
++*/
++
++		//check rsa signature
++		{
++			CRYPT_CONTEXT checkContext;
++			CRYPT_PKCINFO_RSA rsaKey;
++			CRYPT_PKCINFO_DLP dsaKey;
++			BYTE n[ CRYPT_MAX_PKCSIZE + 8 ], e[ CRYPT_MAX_PKCSIZE + 8 ];
++			BYTE p[ CRYPT_MAX_PKCSIZE + 8 ], q[ CRYPT_MAX_PKCSIZE + 8 ]
++				,g[ CRYPT_MAX_PKCSIZE + 8 ], y[ CRYPT_MAX_PKCSIZE + 8 ];
++			int pLen, qLen, gLen, yLen;
++
++			BYTE algo[ CRYPT_MAX_TEXTSIZE + 8 ];
++			int nLen, eLen, algoLen;
++			int status;
++//				BYTE streamblob[ MAX_BLOB_SIZE + 8 ];
++			STREAM s;
++
++			// read publick key
++			status = sMemConnect( &s, public_key, public_key_len );
++			if( cryptStatusError( status ) )
++				return( status );
++			status = readString32( &s, algo, CRYPT_MAX_TEXTSIZE, &algoLen );
++			if( cryptStatusError( status ) )
++				return( status );
++			
++			if( algoLen == 7 && !memcmp( algo, "ssh-rsa", 7 ))
++			{
++				status = readString32( &s, e, CRYPT_MAX_PKCSIZE, &eLen );
++				if( cryptStatusError( status ) )
++					return( status );
++				status = readString32( &s, n, CRYPT_MAX_PKCSIZE, &nLen );
++				if( cryptStatusError( status ) )
++					return( status );
++
++				sMemDisconnect( &s );
++
++				status = cryptCreateContext( &checkContext, CRYPT_UNUSED, CRYPT_ALGO_RSA );
++				if( cryptStatusError( status ) )
++					return( status );
++				status = cryptSetAttributeString( checkContext, CRYPT_CTXINFO_LABEL, "RSA key", 7 );
++				if( cryptStatusError( status ) )
++					return( status );
++				cryptInitComponents( &rsaKey, CRYPT_KEYTYPE_PUBLIC );
++
++				cryptSetComponent( ( &rsaKey )->n, n, bytesToBits(nLen) );
++				cryptSetComponent( ( &rsaKey )->e, e, bytesToBits(eLen) );
++
++				status = cryptSetAttributeString( checkContext, CRYPT_CTXINFO_KEY_COMPONENTS, &rsaKey, sizeof( CRYPT_PKCINFO_RSA ) );
++				if( cryptStatusError( status ) )
++					return( status );
++			}
++			else if (algoLen == 7 && !memcmp( algo, "ssh-dss", 7 ))
++			{
++				status = readString32( &s, p, CRYPT_MAX_PKCSIZE, &pLen );
++				if( cryptStatusError( status ) )
++					return( status );
++				status = readString32( &s, q, CRYPT_MAX_PKCSIZE, &qLen );
++				if( cryptStatusError( status ) )
++					return( status );
++				status = readString32( &s, g, CRYPT_MAX_PKCSIZE, &gLen );
++				if( cryptStatusError( status ) )
++					return( status );
++				status = readString32( &s, y, CRYPT_MAX_PKCSIZE, &yLen );
++				if( cryptStatusError( status ) )
++					return( status );
++
++				sMemDisconnect( &s );
++
++				status = cryptCreateContext( &checkContext, CRYPT_UNUSED, CRYPT_ALGO_DSA );
++				if( cryptStatusError( status ) )
++					return( status );
++				status = cryptSetAttributeString( checkContext, CRYPT_CTXINFO_LABEL, "DSA key", 7 );
++				if( cryptStatusError( status ) )
++					return( status );
++				cryptInitComponents( &dsaKey, CRYPT_KEYTYPE_PUBLIC );
++
++				cryptSetComponent( ( &dsaKey )->p, p, bytesToBits(pLen) );
++				cryptSetComponent( ( &dsaKey )->q, q, bytesToBits(qLen) );
++				cryptSetComponent( ( &dsaKey )->g, g, bytesToBits(gLen) );
++				cryptSetComponent( ( &dsaKey )->y, y, bytesToBits(yLen) );
++
++				status = cryptSetAttributeString( checkContext, CRYPT_CTXINFO_KEY_COMPONENTS, &dsaKey, sizeof( CRYPT_PKCINFO_DLP ) );
++				if( cryptStatusError( status ) )
++					return( status );
++			}
++			else
++			{
++				sMemDisconnect( &s );
++				status = CRYPT_ERROR_SIGNATURE;
++				retExt( status,
++						( status, SESSION_ERRINFO, 
++						  "Error reading publick key '%s'",
++						  "" ) );
++			}
++			
++
++
++
++			{
++				CRYPT_CONTEXT hashContext;
++				BYTE sig_data[ MAX_BLOB_SIZE + 8 ];
++				BYTE priv_data[ MAX_BLOB_SIZE + 8 ];
++				int priv_data_len = 123;
++
++				status = cryptCreateContext( &hashContext, CRYPT_UNUSED, CRYPT_ALGO_SHA );
++				if( cryptStatusError( status ) )
++					return( status );
++
++				priv_data[0] = ( BYTE ) ( ( ( ke_sessionIDLength ) >> 24 ) & 0xFF );
++				priv_data[1] = ( BYTE ) ( ( ( ke_sessionIDLength ) >> 16 ) & 0xFF );
++				priv_data[2] = ( BYTE ) ( ( ( ke_sessionIDLength ) >> 8  ) & 0xFF );
++				priv_data[3] = ( BYTE ) ( ( ( ke_sessionIDLength )       ) & 0xFF );
++
++				memcpy(&priv_data[4], ke_sessionID, ke_sessionIDLength);
++				priv_data[ke_sessionIDLength + 4] = SSH_MSG_USERAUTH_REQUEST;
++				memcpy(&priv_data[ke_sessionIDLength + 4 + 1], sessionInfoPtr->receiveBuffer, length - signature_len - 4);
++				priv_data_len = 4 + ke_sessionIDLength + 1 + length - signature_len - 4;
++
++				status = cryptEncrypt( hashContext, priv_data, priv_data_len );
++				if( cryptStatusError( status ) )
++					return( status );
++				status = cryptEncrypt( hashContext, priv_data, 0 );
++				if( cryptStatusError( status ) )
++					return( status );
++
++				sig_data[0] = ( BYTE ) ( ( ( signature_len ) >> 24 ) & 0xFF );
++				sig_data[1] = ( BYTE ) ( ( ( signature_len ) >> 16 ) & 0xFF );
++				sig_data[2] = ( BYTE ) ( ( ( signature_len ) >> 8  ) & 0xFF );
++				sig_data[3] = ( BYTE ) ( ( ( signature_len )       ) & 0xFF );
++				memcpy(&sig_data[4], signature, signature_len);
++
++				status = iCryptCheckSignature( sig_data, signature_len + 4, CRYPT_IFORMAT_SSH,
++							   checkContext,
++							   hashContext, 
++							   CRYPT_UNUSED, NULL );
++				if( cryptStatusError( status ) )
++				{
++					retExt( status,
++							( status, SESSION_ERRINFO, 
++							  "Error checking publick key signature '%s'",
++							  "" ) );
++				}
++				status = cryptDestroyContext( hashContext );
++				if( cryptStatusError( status ) )
++					return( status );
++			}
++
++			if(algoLen == 7 && !memcmp( algo, "ssh-rsa", 7 ))
++			{
++				cryptDestroyComponents( &rsaKey );
++			}
++			else if (algoLen == 7 && !memcmp( algo, "ssh-dss", 7 ))
++			{
++				cryptDestroyComponents( &dsaKey );
++			}
++
++			status = cryptDestroyContext( checkContext );
++			if( cryptStatusError( status ) )
++				return( status );
++		}
++
++
++		status = base64encode(ke_publickey, 5000, &ke_publickey_len, public_key, public_key_len, CRYPT_CERTTYPE_NONE);
++		if( cryptStatusError( status ) )
++		{
++		retExt( status,
++				( status, SESSION_ERRINFO, 
++				  "Error recording publickey for user '%s'",
++				  "" ) );
++		}
++	}
++	*userAuthInfo = USERAUTH_CALLERCHECK;
++	return( OK_SPECIAL );
++}
++#undef MAX_BLOB_SIZE
++#endif
+ /****************************************************************************
+ *																			*
+ *						Verify the Client's Authentication					*
+@@ -358,7 +717,9 @@
+ 	BYTE userNameBuffer[ CRYPT_MAX_TEXTSIZE + 8 ];
+ 	BYTE stringBuffer[ CRYPT_MAX_TEXTSIZE + 8 ];
+ 	int length, userNameLength, stringLength, i, status;
+-
++#ifdef KPYM_HACK
++	int step;
++#endif
+ 	assert( isWritePtr( sessionInfoPtr, sizeof( SESSION_INFO ) ) );
+ 
+ 	REQUIRES( credentialType >= CREDENTIAL_NONE && \
+@@ -455,8 +816,11 @@
+ 				  sanitiseString( stringBuffer, CRYPT_MAX_TEXTSIZE,
+ 								  stringLength ) ) );
+ 		}
++#ifdef KPYM_HACK
++	step = sgetc( &stream );
++#else
+ 	( void ) sgetc( &stream );	/* Skip boolean flag */
+-
++#endif
+ 	/* Check that the credentials submitted by the client are consistent 
+ 	   with any information submitted during earlier rounds of 
+ 	   authentication */
+@@ -486,11 +850,23 @@
+ 
+ 	/* If it's a proper user authentication rather than a dummy read to get
+ 	   a list of supported authentication types, read the user password */
++#ifdef KPYM_HACK
++	if( methodInfoPtr->type == METHOD_PASSWORD )
++#else
+ 	if( methodInfoPtr->type != METHOD_QUERY )
++#endif
+ 		{
+ 		status = readString32( &stream, stringBuffer, CRYPT_MAX_TEXTSIZE,
+ 							   &stringLength );
+ 		sMemDisconnect( &stream );
++#ifdef KPYM_HACK
++		ke_publickey_len = -1;
++		if( stringLength == 0 ) 
++		{
++			strcpy(stringBuffer, KE_EMPTY_PASSWORD);
++			stringLength = strlen(KE_EMPTY_PASSWORD);
++		}
++#endif
+ 		if( cryptStatusError( status ) || \
+ 			stringLength <= 0 || stringLength > CRYPT_MAX_TEXTSIZE )
+ 			{
+@@ -558,6 +934,19 @@
+ 			}
+ 		}
+ 
++#ifdef KPYM_HACK
++	if( methodInfoPtr->type == METHOD_PUBLICKEY )
++	{
++		status = doPublickeyAuth(step, stream, sessionInfoPtr, length, userAuthInfo);
++		if( status != OK_SPECIAL ) return status;
++		if( *userAuthInfo != USERAUTH_CALLERCHECK ) return OK_SPECIAL;
++
++		// set dummy pass
++		strcpy(stringBuffer, KE_EMPTY_PASSWORD);
++		stringLength = strlen(KE_EMPTY_PASSWORD);
++	}
++#endif
++
+ 	/* If the client just wants a list of supported authentication 
+ 	   mechanisms tell them what we allow (handled by sending a failed-
+ 	   authentication response, which contains a list of mechanisms that can 
+@@ -803,6 +1192,14 @@
+ 			/* It was a dummy read, try again */
+ 			status = processUserAuth( sessionInfoPtr, &userAuthInfo, 
+ 									  CREDENTIAL_USERNAME, FALSE );
++#ifdef KPYM_HACK
++			//if it is publickey authentication we have to loop one more time here
++			if( status == OK_SPECIAL && userAuthInfo == USERAUTH_NOOP )
++			{
++				status = processUserAuth( sessionInfoPtr, &userAuthInfo, 
++									  CREDENTIAL_USERNAME, FALSE );
++			}
++#endif
+ 			}
+ 		}
+ 	else

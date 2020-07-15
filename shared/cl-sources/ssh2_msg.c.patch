@@ -1,0 +1,63 @@
+--- ssh2_msg.c.orig	2010-08-10 00:06:34.000000000 +0200
++++ ssh2_msg.c	2020-07-06 17:59:33.000000000 +0200
+@@ -28,6 +28,9 @@
+ 							 IN_ENUM( CHANNEL ) const CHANNEL_TYPE channelType,
+ 							 const BOOLEAN closeLastChannel );
+ 
++#ifdef KPYM_HACK
++int ke_DH_ROUTER( SESSION_INFO *sessionInfoPtr, STREAM * stream1, int packetType );
++#endif
+ /****************************************************************************
+ *																			*
+ *								Utility Functions							*
+@@ -235,7 +238,20 @@
+ 			   anyway just in case */
+ 			return( getDisconnectInfo( sessionInfoPtr, stream ) );
+ 
++#ifdef KPYM_HACK
++		case SSH_MSG_KEXDH_INIT/*SSH2_MSG_KEXDH_GEX_REQUEST_OLD*/:
++		case SSH_MSG_KEXDH_GEX_INIT:
++		case SSH_MSG_KEXDH_GEX_REQUEST_NEW:
+ 		case SSH_MSG_KEXINIT:
++		case SSH_MSG_NEWKEYS:
++			{
++				int status = ke_DH_ROUTER(sessionInfoPtr, stream, sshInfo->packetType);
++				if( status == CRYPT_OK )return( OK_SPECIAL );
++				else return status;
++			}
++#else
++		case SSH_MSG_KEXINIT:
++#endif
+ 			/* The SSH spec is extremely vague about the sequencing of
+ 			   operations during a rehandshake.  Unlike SSL there's no real 
+ 			   indication of what happens to the connection-layer transfers 
+@@ -403,8 +419,10 @@
+ 			   notification, however many implementations seem to use a
+ 			   channel EOF in place of a close before sending a disconnect
+ 			   message */
++#ifdef KPYM_HACK
++#else
+ 			return( OK_SPECIAL );
+-
++#endif
+ 		case SSH_MSG_CHANNEL_CLOSE:
+ 			/* The peer has closed their side of the channel, if our side
+ 			   isn't already closed (in other words if this message isn't
+@@ -412,8 +430,17 @@
+ 			if( getChannelStatusByChannelNo( sessionInfoPtr, 
+ 											 channelNo ) == CHANNEL_BOTH )
+ 				{
++#ifdef KPYM_HACK
++				status = sendChannelClose( sessionInfoPtr, channelNo,
++										   CHANNEL_BOTH, TRUE );
++
++				/* We've already closed our side of the channel, delete it */
++				status = deleteChannel( sessionInfoPtr, channelNo,
++										CHANNEL_BOTH, TRUE );
++#else
+ 				status = sendChannelClose( sessionInfoPtr, channelNo,
+ 										   CHANNEL_BOTH, TRUE );
++#endif
+ 				}
+ 			else
+ 				{
