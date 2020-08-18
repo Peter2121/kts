@@ -46,6 +46,7 @@ public:
 			s.str( "" );
 			s << "username" << i;
 			ini.GetKey( "KPublickeyLogon", s.str( ), p.username );
+			KWinsta::ToLower(p.username);
 
 			s.str( "" );
 			s << "password" << i;
